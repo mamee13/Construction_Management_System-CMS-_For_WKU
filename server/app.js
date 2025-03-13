@@ -7,7 +7,7 @@ const projectRoutes = require('./routes/projectRoutes');
 const commentRoutes = require('./routes/commentRoutes');
 const materialRoutes=require('./routes/materialRoutes')
 const taskRoutes = require('./routes/taskRoutes');
-
+const scheduleRoutes = require('./routes/scheduleRoutes');
 
 
 app.use(express.json());
@@ -24,6 +24,7 @@ app.use('/api/projects', projectRoutes);
 app.use('/api', commentRoutes);
 app.use('/api',materialRoutes )
 app.use('/api', taskRoutes);
+app.use('/api', scheduleRoutes);
 
 
 app.all('*', (req, res, next) => {
