@@ -105,6 +105,12 @@ import CreateProject from "./pages/admin/projects/CreateProject"
 import ProjectDetail from "./pages/admin/projects/ProjectDetail"
 import EditProject from "./pages/admin/projects/EditProject"
 import ProjectUpdateDebug from "./pages/admin/projects/ProjectUpdateDebug"
+import SchedulesList from "./pages/Admin/schedules/SchedulesList"
+import CreateSchedule from "./pages/admin/schedules/CreateSchedule"
+import EditSchedule from "./pages/admin/schedules/EditSchedule"
+import ScheduleDetail from "./pages/admin/schedules/ScheduleDetail"
+import ScheduleCalendar from "./pages/Admin/schedules/ScheduleCalendar"
+
 
 // Protected route component
 const ProtectedRoute = ({ children, requiredRole }) => {
@@ -167,6 +173,13 @@ function App() {
           <Route path="projects/:id" element={<ProjectDetail />} />
           <Route path="projects/edit/:id" element={<EditProject />} />
           <Route path="projects/debug/:id" element={<ProjectUpdateDebug />} />
+
+          {/* Schedule management routes */}
+          <Route path="schedules" element={<SchedulesList />} />
+          <Route path="schedules/create" element={<CreateSchedule />} />
+          <Route path="schedules/calendar" element={<ScheduleCalendar />} />
+          <Route path="schedules/edit/:id" element={<EditSchedule />} />
+          <Route path="schedules/:id" element={<ScheduleDetail />} />
 
           {/* Add more admin routes as needed */}
         </Route>
