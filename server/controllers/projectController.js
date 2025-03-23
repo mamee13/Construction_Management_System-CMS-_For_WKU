@@ -46,6 +46,7 @@ exports.createProject = catchAsync(async (req, res, next) => {
       materials,
       schedules,
       comments,
+      status
     } = req.body;
     try {
         const project = await Project.create({
@@ -60,6 +61,7 @@ exports.createProject = catchAsync(async (req, res, next) => {
           materials,
           schedules,
           comments,
+          status
         });
         console.log("Project created successfully");
         res.status(201).json({
@@ -150,5 +152,50 @@ exports.deleteProject = catchAsync(async (req, res, next) => {
   res.status(200).json({
     success: true,
     message: 'Project deleted successfully.'
+  });
+});
+
+// @desc    Update project
+// @route   PUT /api/projects/:id
+// @access  Private (Admin only)
+exports.updateProject = catchAsync(async (req, res, next) => {
+
+  console.log("1");
+  const token = req.header('Authorization').replace('Bearer ', '');
+    console.log("1");
+  
+  
+    // Verify the JWT token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log("2");
+  
+    // Get the user and role from the decoded token
+    const user = await User.findById(decoded.id);
+    console.log("3");
+    // Only an admin can create new user accounts
+    if (user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'You do not have permission to create a new user account.'
+      });
+    }
+  // Attempt to update the project with validation
+  const project = await Project.findByIdAndUpdate(req.params.id, req.body, {
+    new: true,
+    runValidators: true
+  });
+  console.log(project);
+  // If no project found, send a 404 response
+  if (!project) {
+    return res.status(404).json({
+      success: false,
+      message: 'Project not found.'
+    });
+  }
+
+  // Respond with the updated project data
+  res.status(200).json({
+    success: true,
+    data: project
   });
 });

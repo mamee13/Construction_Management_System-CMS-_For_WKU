@@ -7,7 +7,7 @@ mongoose.connect('mongodb://localhost:27017/');
 
 const adminUser = new User({
     firstName: 'Admin',
-    lastName: 'User',
+    lastName: 'Userr',
     email: 'admin@example.com',
     password: 'password1234',
     role: 'admin',

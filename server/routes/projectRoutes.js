@@ -11,7 +11,12 @@ router.get('/', projectController.getProjects);
 // Get project by ID
 router.get('/:id', projectController.getProject);
 
+// Update project
+router.put('/:id', projectController.updateProject);
+
 // Delete project
 router.delete('/:id', projectController.deleteProject);
+
+
 
 module.exports = router;

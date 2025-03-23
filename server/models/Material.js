@@ -5,7 +5,7 @@ const materialSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Please provide the material name'],
     trim: true,
-    maxlength: [100, 'Material name cannot exceed 100 characters']
+    maxlength: [100, 'Material name cannot exceed 100 characters'] 
   },
   materialType: {
     type: String,
