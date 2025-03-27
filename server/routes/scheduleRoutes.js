@@ -3,12 +3,13 @@ const router = express.Router();
 const scheduleController = require('../controllers/scheduleController');
 
 // Public routes
-router.get('/project/:projectId/schedules', scheduleController.getSchedulesForProject);
-
+// router.get('/', scheduleController.getSchedulesForProject);
+router.get('/', scheduleController.getAllSchedules)
 // Protected routes
-router.post('/project/:projectId/schedules', scheduleController.createSchedule);
-router.patch('/schedules/:id', scheduleController.updateSchedule);
-router.delete('/schedules/:id', scheduleController.deleteSchedule);
+router.post('/', scheduleController.createSchedule);
+router.patch('/:scheduleId', scheduleController.updateSchedule);
+router.delete('/:id', scheduleController.deleteSchedule);
+router.get('/:scheduleId', scheduleController.getScheduleById);
 
 module.exports = router;
 

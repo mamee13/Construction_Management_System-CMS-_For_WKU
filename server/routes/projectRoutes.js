@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const projectController = require('../controllers/projectController');
+const authMiddleware = require('../middlewares/authMiddleware')
 
 // Create new project
 router.post('/', projectController.createProject,);
@@ -15,7 +16,7 @@ router.get('/:id', projectController.getProject);
 router.put('/:id', projectController.updateProject);
 
 // Delete project
-router.delete('/:id', projectController.deleteProject);
+router.delete('/:id',authMiddleware, projectController.deleteProject);
 
 
 

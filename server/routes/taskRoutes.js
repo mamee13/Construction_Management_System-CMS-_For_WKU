@@ -2,12 +2,19 @@ const express = require('express');
 const router = express.Router();
 const taskController = require('../controllers/taskController');
 
-// Public routes
-router.get('/project/:projectId/tasks', taskController.getTasksForProject);
+// Create task
+router.post('/', taskController.createTask);
 
-// Protected routes
-router.post('/project/:projectId/tasks', taskController.createTask);
-router.patch('/tasks/:id', taskController.updateTask);
-router.delete('/tasks/:id', taskController.deleteTask);
+// Get all tasks
+router.get('/', taskController.getTasks);
+
+// Get a single task by ID
+router.get('/:id', taskController.getTaskById);
+
+// Update task
+router.patch('/:id', taskController.updateTask);
+
+// Delete task
+router.delete('/:id', taskController.deleteTask);
 
 module.exports = router;

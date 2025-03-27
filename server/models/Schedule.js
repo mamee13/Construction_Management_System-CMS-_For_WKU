@@ -24,7 +24,7 @@ const scheduleSchema = new mongoose.Schema({
     required: [true, 'Please provide the end date'],
     validate: {
       validator: function(value) {
-        return value > this.startDate;
+        return value >= this.startDate;
       },
       message: 'End date must be after the start date'
     }

@@ -1,98 +1,3 @@
-// const mongoose = require('mongoose');
-
-// const projectSchema = new mongoose.Schema({
-//   projectName: {
-//     type: String,
-//     required: [true, 'Please provide the project name'],
-//     trim: true,
-//     maxlength: [100, 'Project name cannot exceed 100 characters']
-//   },
-//   projectDescription: {
-//     type: String,
-//     required: [true, 'Please provide a project description'],
-//     trim: true,
-//     maxlength: [500, 'Description cannot exceed 500 characters']
-//   },
-//   startDate: {
-//     type: Date,
-//     required: [true, 'Please provide the start date']
-//   },
-//   endDate: {
-//     type: Date,
-//     required: [true, 'Please provide the end date'],
-//     validate: {
-//       validator: function(value) {
-//         return value > this.startDate;
-//       },
-//       message: 'End date must be after the start date'
-//     }
-//   },
-//   projectLocation: {
-//     type: String,
-//     required: [true, 'Please provide the project location'],
-//     trim: true,
-//     maxlength: [100, 'Location cannot exceed 100 characters']
-//   },
-//   projectBudget: {
-//     type: Number,
-//     required: [true, 'Please provide the project budget'],
-//     min: [0, 'Budget cannot be negative']
-//   },
-//   contractor: {
-//     type: mongoose.Schema.Types.ObjectId,
-//     ref: 'User',
-//     required: [true, 'Please assign a contractor to the project']
-//   },
-//   consultant: {
-//     type: mongoose.Schema.Types.ObjectId,
-//     ref: 'User',
-//     required: [true, 'Please assign a consultant to the project']
-//   },
-//   materials: [{
-//     type: mongoose.Schema.Types.ObjectId,
-//     ref: 'Material'
-//   }],
-//   schedules: [{
-//     type: mongoose.Schema.Types.ObjectId,
-//     ref: 'Schedule'
-//   }],
-//   comments: [{
-//     type: mongoose.Schema.Types.ObjectId,
-//     ref: 'Comment'
-//   }],
-//   status: {
-//     type: String,
-//     enum: ['planned', 'in_progress', 'completed', 'on_hold'],
-//     default: 'planned'
-//   },
-//   createdAt: {
-//     type: Date,
-//     default: Date.now
-//   }
-// }, {
-//   timestamps: true,
-//   toJSON: { virtuals: true },
-//   toObject: { virtuals: true }
-// });
-
-// // Virtual for project duration
-// projectSchema.virtual('duration').get(function() {
-//   return Math.ceil((this.endDate - this.startDate) / (1000 * 60 * 60 * 24)); // Duration in days
-// });
-
-// // Cascade delete materials, schedules and comments when a project is deleted
-// projectSchema.pre('remove', async function(next) {
-//     await this.model('Material').deleteMany({ project: this._id });
-//     await this.model('Schedule').deleteMany({ project: this._id });
-//     await this.model('Comment').deleteMany({ project: this._id });
-//     next();
-//   });
-
-// // Indexes for performance
-// projectSchema.index({ projectName: 1, status: 1 });
-// projectSchema.index({ contractor: 1 });
-
-// module.exports = mongoose.model('Project', projectSchema);
 
 const mongoose = require('mongoose');
 
@@ -118,7 +23,9 @@ const projectSchema = new mongoose.Schema({
     required: [true, 'Please provide the end date'],
     validate: {
       validator: function(value) {
-        return value > this.startDate;
+        // Handles both creation and update scenarios
+        const checkStartDate = this.startDate || this.getUpdate?.$set?.startDate;
+        return !checkStartDate || value > checkStartDate;
       },
       message: 'End date must be after the start date'
     }
@@ -144,15 +51,20 @@ const projectSchema = new mongoose.Schema({
     ref: 'User',
     required: [true, 'Please assign a consultant to the project']
   },
-  materials: [{
+  // --- References to related documents ---
+  materials: [{ // This stores IDs, but deletion is handled by pre-remove hook
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Material'
   }],
-  schedules: [{
+  schedules: [{ // This stores IDs, but deletion is handled by pre-remove hook
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Schedule'
   }],
-  comments: [{
+  tasks: [{ // This stores IDs, but deletion is handled by pre-remove hook
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Task'
+  }],
+  comments: [{ // This stores IDs, but deletion is handled by pre-remove hook
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Comment'
   }],
@@ -166,57 +78,91 @@ const projectSchema = new mongoose.Schema({
     default: Date.now
   }
 }, {
-  timestamps: true,
-  toJSON: { virtuals: true },
-  toObject: { virtuals: true }
+  timestamps: true, // Adds createdAt and updatedAt automatically
+  toJSON: { virtuals: true }, // Include virtuals when document is converted to JSON
+  toObject: { virtuals: true } // Include virtuals when document is converted to a plain object
 });
 
 // Virtual for project duration (in days)
 projectSchema.virtual('duration').get(function() {
-  return Math.ceil((this.endDate - this.startDate) / (1000 * 60 * 60 * 24));
+  if (this.endDate && this.startDate) {
+      return Math.ceil((this.endDate - this.startDate) / (1000 * 60 * 60 * 24));
+  }
+  return 0; // Return 0 or null if dates are missing
 });
 
-// Cascade delete materials, schedules, and comments when a project is deleted
+// ==============================================
+// Middleware Hooks
+// ==============================================
+
+// --- Cascade Delete Middleware ---
+// Runs BEFORE a project document is removed using document.remove()
 projectSchema.pre('remove', async function(next) {
-  await this.model('Material').deleteMany({ project: this._id });
-  await this.model('Schedule').deleteMany({ project: this._id });
-  await this.model('Comment').deleteMany({ project: this._id });
-  next();
-});
-
-// ====================
-// Post-save Middleware
-// ====================
-// After a project is saved, update the contractor's and consultant's associatedProjects array.
-// Note: We require the User model here (inside the hook) to avoid circular dependency issues.
-projectSchema.post('save', async function(doc, next) {
+  console.log(`[Project Pre-Remove Hook] Deleting related documents for project ${this._id}`);
   try {
-    // Inline require of the User model
-    const User = mongoose.model('User');
-    
-    // Add the project ID to the contractor's associatedProjects array
-    await User.findByIdAndUpdate(
-      doc.contractor,
-      { $push: { associatedProjects: doc._id } },
-      { new: true }
-    );
-    
-    // Add the project ID to the consultant's associatedProjects array
-    await User.findByIdAndUpdate(
-      doc.consultant,
-      { $push: { associatedProjects: doc._id } },
-      { new: true }
-    );
-    
-    next();
+      // Concurrently delete all related documents
+      await Promise.all([
+          // Use this.model('ModelName') to access other models within the hook
+          this.model('Material').deleteMany({ project: this._id }),
+          this.model('Schedule').deleteMany({ project: this._id }),
+          this.model('Comment').deleteMany({ project: this._id }),
+          this.model('Task').deleteMany({ project: this._id }) // <-- Added Task deletion
+      ]);
+      console.log(`[Project Pre-Remove Hook] Successfully deleted related documents for project ${this._id}`);
+      next(); // Proceed with removing the project itself
   } catch (error) {
-    // Pass any error to the next middleware
-    next(error);
+      console.error(`[Project Pre-Remove Hook] Error deleting related documents for project ${this._id}:`, error);
+      // Pass error to Mongoose to potentially halt the remove operation
+      next(error);
   }
 });
 
-// Indexes for performance
+// --- Post-Save Middleware ---
+// After a project is saved (created or updated), update associated users.
+projectSchema.post('save', async function(doc, next) {
+  // Check if contractor or consultant fields were modified or if it's a new doc
+  // This check prevents unnecessary updates on every save if these fields didn't change.
+  // Note: isModified might not work perfectly for ObjectId comparison, checking isNew is safer for creation.
+  const needsUpdate = this.isNew || this.isModified('contractor') || this.isModified('consultant');
+
+  if (!needsUpdate) {
+      return next(); // Skip if contractor/consultant haven't changed
+  }
+
+  console.log(`[Project Post-Save Hook] Updating associated projects for users related to project ${doc._id}`);
+  try {
+    // Inline require of the User model to prevent potential circular dependencies
+    const User = mongoose.model('User');
+
+    // Use Promise.all for concurrent updates
+    await Promise.all([
+        // Add project ID to contractor's list (using $addToSet prevents duplicates)
+        User.findByIdAndUpdate(
+            doc.contractor,
+            { $addToSet: { associatedProjects: doc._id } }
+            // { new: true } // 'new' is optional here unless you need the updated user doc back
+        ),
+        // Add project ID to consultant's list
+        User.findByIdAndUpdate(
+            doc.consultant,
+            { $addToSet: { associatedProjects: doc._id } }
+        )
+    ]);
+
+    console.log(`[Project Post-Save Hook] Successfully updated users for project ${doc._id}`);
+    next();
+  } catch (error) {
+    console.error(`[Project Post-Save Hook] Error updating users for project ${doc._id}:`, error);
+    next(error); // Pass error to the next middleware
+  }
+});
+
+
+// ==============================================
+// Indexes for Performance
+// ==============================================
 projectSchema.index({ projectName: 1, status: 1 });
 projectSchema.index({ contractor: 1 });
+projectSchema.index({ consultant: 1 }); // Added index for consultant
 
 module.exports = mongoose.model('Project', projectSchema);

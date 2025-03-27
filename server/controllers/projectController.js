@@ -84,7 +84,7 @@ exports.getProjects = catchAsync(async (req, res, next) => {
     console.log("1");
     try {
       const projects = await Project.find();
-      console.log(projects)
+      //console.log(projects)
       res.status(201).json({
         success: true,
         data: projects

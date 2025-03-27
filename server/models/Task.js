@@ -17,21 +17,42 @@ const taskSchema = new mongoose.Schema({
     type: Date,
     required: [true, 'Please provide the start date']
   },
+  // endDate: {
+  //   type: Date,
+  //   required: [true, 'Please provide the end date'],
+  //   validate: {
+  //     validator: function(value) {
+  //       return value > this.startDate;
+  //     },
+  //     message: 'End date must be after the start date'
+  //   }
+  // },
   endDate: {
     type: Date,
     required: [true, 'Please provide the end date'],
     validate: {
       validator: function(value) {
-        return value > this.startDate;
+        // If the document is new (creating), use `this.startDate`
+        // Otherwise, for updates, use `this.getUpdate().$set.startDate`
+        if (this.isNew) {
+          return value > this.startDate;
+        } else {
+          return !this.getUpdate || !this.getUpdate().$set.startDate || value > this.getUpdate().$set.startDate;
+        }
       },
       message: 'End date must be after the start date'
     }
   },
-  assignedTo: {
+  // assignedTo: {
+  //   type: mongoose.Schema.Types.ObjectId,
+  //   ref: 'User',
+  //   required: [true, 'Please assign the task to a user']
+  // },
+  assignedTo: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: [true, 'Please assign the task to a user']
-  },
+    required: [true, 'Please assign the task to at least one user']
+  }],
   project: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Project',

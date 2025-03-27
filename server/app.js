@@ -8,6 +8,7 @@ const projectRoutes = require('./routes/projectRoutes');
 const commentRoutes = require('./routes/commentRoutes');
 const materialRoutes = require('./routes/materialRoutes');
 const taskRoutes = require('./routes/taskRoutes');
+
 const scheduleRoutes = require('./routes/scheduleRoutes');
 const userRoutes = require('./routes/userRoutes');
 // CORS middleware - MUST come BEFORE routes
@@ -32,9 +33,9 @@ app.get('/', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api', commentRoutes);
-app.use('/api', materialRoutes);
-app.use('/api', taskRoutes);
-app.use('/api', scheduleRoutes);
+app.use('/api/materials', materialRoutes);
+app.use('/api/tasks', taskRoutes);
+app.use('/api/schedules', scheduleRoutes);
 app.use('/api/users', userRoutes);
 
 // 404 handler
