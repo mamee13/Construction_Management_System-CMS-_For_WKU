@@ -74,6 +74,32 @@ const userSchema = new mongoose.Schema({
   toJSON: { virtuals: true },
   toObject: { virtuals: true }
 });
+
+
+// Add virtual properties for role checks
+userSchema.virtual('isAdmin').get(function() {
+  return this.role === 'admin';
+});
+
+userSchema.virtual('isContractor').get(function() {
+  return this.role === 'contractor';
+});
+
+userSchema.virtual('isConsultant').get(function() {
+  return this.role === 'consultant';
+});
+
+userSchema.virtual('isProject_manager').get(function() {
+  return this.role === 'project_manager';
+});
+
+userSchema.virtual('isCommittee').get(function() {
+  return this.role === 'committee';
+});
+
+
+
+
 // Encrypt user password before saving user to the database
 userSchema.pre('save', async function(next) {
     if (!this.isModified('password')) return next();
