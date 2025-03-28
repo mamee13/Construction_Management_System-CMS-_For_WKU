@@ -46,4 +46,42 @@ commentSchema.pre('remove', async function(next) {
   next();
 });
 
+// Add this post-save hook to commentSchema
+
+commentSchema.post('save', async function(doc, next) {
+  // Note: Your existing pre-save hook updates 'updatedAt'. Keep that!
+  console.log(`[Comment Post-Save Hook] Adding comment ${doc._id} to project ${doc.project}`);
+  try {
+    const Project = mongoose.model('Project');
+    await Project.findByIdAndUpdate(
+      doc.project,
+      { $addToSet: { comments: doc._id } }
+    );
+    console.log(`[Comment Post-Save Hook] Successfully added comment ${doc._id} to project ${doc.project}`);
+    next();
+  } catch (error) {
+    console.error(`[Comment Post-Save Hook] Error adding comment ${doc._id} to project ${doc.project}:`, error);
+    next(error);
+  }
+});
+
+// Add a pre-remove hook to clean up the project array if a comment is deleted directly
+// Note: Your existing pre-remove hook is empty, which is fine. Add this logic.
+commentSchema.pre('remove', async function(next) {
+    console.log(`[Comment Pre-Remove Hook] Removing comment ${this._id} from project ${this.project}`);
+    try {
+        const Project = mongoose.model('Project');
+        await Project.findByIdAndUpdate(
+            this.project,
+            { $pull: { comments: this._id } } // Remove the comment's ID
+        );
+        console.log(`[Comment Pre-Remove Hook] Successfully removed comment ${this._id} from project ${this.project}`);
+        next();
+    } catch (error) {
+        console.error(`[Comment Pre-Remove Hook] Error removing comment ${this._id} from project ${this.project}:`, error);
+        next(error);
+    }
+});
+
+
 module.exports = mongoose.model('Comment', commentSchema);

@@ -13,10 +13,10 @@ router.get('/', projectController.getProjects);
 router.get('/:id', projectController.getProject);
 
 // Update project
-router.put('/:id', projectController.updateProject);
+router.put('/:id',projectController.isAdminMiddleware, projectController.updateProject);
 
 // Delete project
-router.delete('/:id',authMiddleware, projectController.deleteProject);
+router.delete('/:id',projectController.isAdminMiddleware, projectController.deleteProject);
 
 
 

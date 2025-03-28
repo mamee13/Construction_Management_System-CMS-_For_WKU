@@ -98,24 +98,81 @@ projectSchema.virtual('duration').get(function() {
 // --- Cascade Delete Middleware ---
 // Runs BEFORE a project document is removed using document.remove()
 projectSchema.pre('remove', async function(next) {
-  console.log(`[Project Pre-Remove Hook] Deleting related documents for project ${this._id}`);
+  const projectId = this._id;
+  console.log(`[Project Pre-Remove Hook ${projectId}] ---> ENTERING hook.`);
+
   try {
-      // Concurrently delete all related documents
-      await Promise.all([
-          // Use this.model('ModelName') to access other models within the hook
-          this.model('Material').deleteMany({ project: this._id }),
-          this.model('Schedule').deleteMany({ project: this._id }),
-          this.model('Comment').deleteMany({ project: this._id }),
-          this.model('Task').deleteMany({ project: this._id }) // <-- Added Task deletion
+      // --- Log Model Access ---
+      console.log(`[Project Pre-Remove Hook ${projectId}] Accessing Material model...`);
+      const Material = this.model('Material');
+      if (!Material) throw new Error("Failed to get Material model"); // Add checks
+      console.log(`[Project Pre-Remove Hook ${projectId}] Got Material model.`);
+
+      console.log(`[Project Pre-Remove Hook ${projectId}] Accessing Schedule model...`);
+      const Schedule = this.model('Schedule');
+      if (!Schedule) throw new Error("Failed to get Schedule model");
+      console.log(`[Project Pre-Remove Hook ${projectId}] Got Schedule model.`);
+
+      console.log(`[Project Pre-Remove Hook ${projectId}] Accessing Comment model...`);
+      const Comment = this.model('Comment');
+       if (!Comment) throw new Error("Failed to get Comment model");
+      console.log(`[Project Pre-Remove Hook ${projectId}] Got Comment model.`);
+
+      console.log(`[Project Pre-Remove Hook ${projectId}] Accessing Task model...`);
+      const Task = this.model('Task');
+      if (!Task) throw new Error("Failed to get Task model");
+      console.log(`[Project Pre-Remove Hook ${projectId}] Got Task model.`);
+
+      console.log(`[Project Pre-Remove Hook ${projectId}] Accessing User model...`);
+      const User = this.model('User');
+      if (!User) throw new Error("Failed to get User model");
+      console.log(`[Project Pre-Remove Hook ${projectId}] Got User model.`);
+      // --- End Log Model Access ---
+
+
+      console.log(`[Project Pre-Remove Hook ${projectId}] Starting Promise.all...`);
+
+      const results = await Promise.all([
+          Material.deleteMany({ project: projectId }).exec(),
+          Schedule.deleteMany({ project: projectId }).exec(),
+          Comment.deleteMany({ project: projectId }).exec(),
+          Task.deleteMany({ project: projectId }).exec(),
+          this.contractor ? User.findByIdAndUpdate(this.contractor, { $pull: { associatedProjects: projectId } }).exec() : Promise.resolve({ message: "No contractor" }),
+          this.consultant ? User.findByIdAndUpdate(this.consultant, { $pull: { associatedProjects: projectId } }).exec() : Promise.resolve({ message: "No consultant" })
       ]);
-      console.log(`[Project Pre-Remove Hook] Successfully deleted related documents for project ${this._id}`);
-      next(); // Proceed with removing the project itself
+
+      console.log(`[Project Pre-Remove Hook ${projectId}] Promise.all COMPLETED.`);
+      // Log results if needed...
+
+      console.log(`[Project Pre-Remove Hook ${projectId}] ---> Calling next() successfully.`);
+      next();
+
   } catch (error) {
-      console.error(`[Project Pre-Remove Hook] Error deleting related documents for project ${this._id}:`, error);
-      // Pass error to Mongoose to potentially halt the remove operation
+      console.error(`[Project Pre-Remove Hook ${projectId}] ---> CAUGHT ERROR:`, error);
+      console.log(`[Project Pre-Remove Hook ${projectId}] ---> Calling next(error) due to error.`);
       next(error);
   }
 });
+
+// projectSchema.pre('remove', async function(next) {
+//   console.log(`[Project Pre-Remove Hook] Deleting related documents for project ${this._id}`);
+//   try {
+//       // Concurrently delete all related documents
+//       await Promise.all([
+//           // Use this.model('ModelName') to access other models within the hook
+//           this.model('Material').deleteMany({ project: this._id }),
+//           this.model('Schedule').deleteMany({ project: this._id }),
+//           this.model('Comment').deleteMany({ project: this._id }),
+//           this.model('Task').deleteMany({ project: this._id }) // <-- Added Task deletion
+//       ]);
+//       console.log(`[Project Pre-Remove Hook] Successfully deleted related documents for project ${this._id}`);
+//       next(); // Proceed with removing the project itself
+//   } catch (error) {
+//       console.error(`[Project Pre-Remove Hook] Error deleting related documents for project ${this._id}:`, error);
+//       // Pass error to Mongoose to potentially halt the remove operation
+//       next(error);
+//   }
+// });
 
 // --- Post-Save Middleware ---
 // After a project is saved (created or updated), update associated users.
@@ -156,6 +213,8 @@ projectSchema.post('save', async function(doc, next) {
     next(error); // Pass error to the next middleware
   }
 });
+
+
 
 
 // ==============================================

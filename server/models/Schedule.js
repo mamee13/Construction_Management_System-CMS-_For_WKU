@@ -119,4 +119,70 @@ scheduleSchema.pre('remove', async function(next) {
   next();
 });
 
+// Add this post-save hook to scheduleSchema
+
+scheduleSchema.post('save', async function(doc, next) {
+  // Note: Your existing post-save hook updates the Task. Keep that!
+  // We'll add the project update logic alongside it.
+
+  console.log(`[Schedule Post-Save Hook] Adding schedule ${doc._id} to project ${doc.project}`);
+  try {
+    // Update the Project
+    const Project = mongoose.model('Project');
+    await Project.findByIdAndUpdate(
+      doc.project,
+      { $addToSet: { schedules: doc._id } }
+    );
+    console.log(`[Schedule Post-Save Hook] Successfully added schedule ${doc._id} to project ${doc.project}`);
+
+    // --- Keep your existing logic to update the Task ---
+    const Task = mongoose.model('Task');
+    const task = await Task.findById(doc.task);
+    if (task && doc.status === 'completed' && task.status !== 'completed') {
+        task.status = 'completed';
+        await task.save();
+        console.log(`[Schedule Post-Save Hook] Updated task ${task._id} status to completed.`);
+    }
+    // --- End of existing logic ---
+
+    next();
+  } catch (error) {
+    console.error(`[Schedule Post-Save Hook] Error processing post-save for schedule ${doc._id}:`, error);
+    next(error);
+  }
+});
+
+
+// Add a pre-remove hook to clean up the project array if a schedule is deleted directly
+scheduleSchema.pre('remove', async function(next) {
+    // Note: Your existing pre-remove hook updates the Task. Keep that!
+    console.log(`[Schedule Pre-Remove Hook] Removing schedule ${this._id} from project ${this.project}`);
+    try {
+        // Update the Project
+        const Project = mongoose.model('Project');
+        await Project.findByIdAndUpdate(
+            this.project,
+            { $pull: { schedules: this._id } } // Remove the schedule's ID
+        );
+        console.log(`[Schedule Pre-Remove Hook] Successfully removed schedule ${this._id} from project ${this.project}`);
+
+        // --- Keep your existing logic to update the Task ---
+        const Task = mongoose.model('Task');
+        const task = await Task.findById(this.task);
+        if (task && task.status === 'completed') {
+            // Maybe revert task status if the schedule was critical? Or leave as is?
+            // This depends on your business logic. Let's assume reverting for now.
+            task.status = 'in_progress'; // Or 'not_started' depending on logic
+            await task.save();
+             console.log(`[Schedule Pre-Remove Hook] Reverted task ${task._id} status.`);
+        }
+         // --- End of existing logic ---
+
+        next();
+    } catch (error) {
+        console.error(`[Schedule Pre-Remove Hook] Error processing pre-remove for schedule ${this._id}:`, error);
+        next(error);
+    }
+});
+
 module.exports = mongoose.model('Schedule', scheduleSchema);

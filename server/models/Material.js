@@ -111,4 +111,44 @@ materialSchema.pre('remove', async function(next) {
   next();
 });
 
+
+// Add this post-save hook to materialSchema
+
+materialSchema.post('save', async function(doc, next) {
+  console.log(`[Material Post-Save Hook] Adding material ${doc._id} to project ${doc.project}`);
+  try {
+    // Use mongoose.model to avoid potential circular dependencies
+    const Project = mongoose.model('Project');
+    await Project.findByIdAndUpdate(
+      doc.project, // The ID of the project to update
+      { $addToSet: { materials: doc._id } } // Add the new material's ID to the 'materials' array
+                                            // $addToSet prevents adding duplicates
+    );
+    console.log(`[Material Post-Save Hook] Successfully added material ${doc._id} to project ${doc.project}`);
+    next();
+  } catch (error) {
+    console.error(`[Material Post-Save Hook] Error adding material ${doc._id} to project ${doc.project}:`, error);
+    // Decide if you want to halt further middleware or just log the error
+    // If this fails, the material is saved, but the project reference might be missing.
+    next(error); // Pass the error along
+  }
+});
+
+// Add a pre-remove hook to clean up the project array if a material is deleted directly
+materialSchema.pre('remove', async function(next) {
+    console.log(`[Material Pre-Remove Hook] Removing material ${this._id} from project ${this.project}`);
+    try {
+        const Project = mongoose.model('Project');
+        await Project.findByIdAndUpdate(
+            this.project,
+            { $pull: { materials: this._id } } // Remove the material's ID
+        );
+        console.log(`[Material Pre-Remove Hook] Successfully removed material ${this._id} from project ${this.project}`);
+        next();
+    } catch (error) {
+        console.error(`[Material Pre-Remove Hook] Error removing material ${this._id} from project ${this.project}:`, error);
+        next(error);
+    }
+});
+
 module.exports = mongoose.model('Material', materialSchema);
