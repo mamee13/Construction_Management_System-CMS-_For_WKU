@@ -40,6 +40,7 @@ import MaterialsList from "./pages/admin/materials/MaterialsList"
 import CreateMaterial from "./pages/admin/materials/CreateMaterial"
 import EditMaterial from "./pages/admin/materials/EditMaterial"
 import MaterialDetail from "./pages/admin/materials/MaterialDetail"
+import ReportList from "./pages/Admin/reports/ReportList"
 
 // Protected route component
 const ProtectedRoute = ({ children, requiredRole }) => {
@@ -120,7 +121,8 @@ function App() {
             <Route path="materials/create" element={<CreateMaterial />} />
             <Route path="materials/edit/:id" element={<EditMaterial />} />
             <Route path="materials/:id" element={<MaterialDetail />} />
-         
+            {/* Add more Report routes as needed */}
+           <Route path="reports" element={<ReportList />} />
           {/* Add more admin routes as needed */}
         </Route>
 

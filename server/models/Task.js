@@ -175,6 +175,7 @@ taskSchema.post('save', async function(doc, next) {
 });
 
 
+
 // Add a pre-remove hook to clean up the project array if a task is deleted directly
 taskSchema.pre('remove', async function(next) {
      // Note: Your existing pre-remove hook updates the Project status. Keep that!

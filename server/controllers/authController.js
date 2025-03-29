@@ -142,3 +142,45 @@ exports.register = catchAsync(async (req, res, next) => {
     },
   });
 });
+
+// @desc    Update user password (logged-in user)
+// @route   PATCH /api/auth/updatepassword
+// @access  Private (User must be logged in)
+exports.updateMyPassword = catchAsync(async (req, res, next) => {
+  const { currentPassword, newPassword } = req.body;
+
+  // 1. Get user from the collection (including password)
+  // req.user should be populated by your authentication middleware (e.g., 'protect')
+  if (!req.user || !req.user.id) {
+       return res.status(401).json({ success: false, message: 'Not authorized, user not found in request' });
+      // return next(new ErrorResponse('Not authorized', 401));
+  }
+
+  const user = await User.findById(req.user.id).select('+password');
+
+  if (!user) {
+      return res.status(401).json({ success: false, message: 'User not found' });
+      // return next(new ErrorResponse('User not found', 401)); // Should ideally not happen if token is valid
+  }
+
+  // 2. Check if posted current password is correct
+  if (!currentPassword || !(await user.comparePassword(currentPassword))) {
+       return res.status(401).json({ success: false, message: 'Incorrect current password' });
+      // return next(new ErrorResponse('Incorrect current password', 401));
+  }
+
+  // 3. If so, update password
+  // The 'pre-save' hook in the User model will handle hashing
+  user.password = newPassword;
+  await user.save(); // This triggers the pre-save hook
+
+  // 4. Log user in, send JWT back (optional, but good practice)
+  // Or just send success message if frontend doesn't need a new token immediately
+  // const token = user.generateAuthToken(); // Assuming this method exists
+
+  res.status(200).json({
+      success: true,
+      message: 'Password updated successfully'
+      // token: token // Optionally send a new token
+  });
+});

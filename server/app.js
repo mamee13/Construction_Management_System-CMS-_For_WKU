@@ -11,6 +11,7 @@ const taskRoutes = require('./routes/taskRoutes');
 
 const scheduleRoutes = require('./routes/scheduleRoutes');
 const userRoutes = require('./routes/userRoutes');
+const reportRoutes = require('./routes/reportRoutes');
 // CORS middleware - MUST come BEFORE routes
 app.use(cors({
   origin: 'http://localhost:5173', // Your frontend URL
@@ -37,6 +38,7 @@ app.use('/api/materials', materialRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/schedules', scheduleRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/reports', reportRoutes);
 
 // 404 handler
 app.all('*', (req, res, next) => {
