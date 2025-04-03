@@ -239,3 +239,70 @@ exports.deleteProject = catchAsync(async (req, res, next) => {
          return res.status(500).json({ success: false, message: `Failed to delete project and related data: ${error.message}` });
     }
 });
+
+
+
+// @desc    Get projects assigned to a specific consultant
+// @route   GET /api/projects/consultant/:consultantId
+// @access  Private (Logged in user, potentially check if user matches consultantId or is admin)
+exports.getProjectsByConsultantId = catchAsync(async (req, res, next) => {
+    const consultantId = req.params.consultantId;
+
+    if (!mongoose.Types.ObjectId.isValid(consultantId)) {
+        return res.status(400).json({ success: false, message: `Invalid consultant ID format: ${consultantId}` });
+    }
+
+    // Optional: Add authorization check - Ensure the logged-in user IS the consultant or an admin
+    // if (req.user.role !== 'admin' && req.user._id.toString() !== consultantId) {
+    //     return res.status(403).json({ success: false, message: 'Not authorized to view these projects' });
+    // }
+
+    const projects = await Project.find({ consultant: consultantId })
+        .populate('contractor', 'firstName lastName email isActive')
+        .populate('consultant', 'firstName lastName email isActive') // Still populate consultant info if needed elsewhere
+        .populate('projectManager', 'firstName lastName email isActive') // Populate PM for display
+        .sort({ createdAt: -1 }); // Sort by creation date, newest first
+
+    if (!projects) {
+        // find() returns empty array, not null, if nothing found. This check might not be needed.
+        return res.status(404).json({ success: false, message: `No projects found for consultant ${consultantId}` });
+    }
+
+    // Match the structure expected by the frontend: { data: { projects: [...] } }
+    res.status(200).json({
+        success: true,
+        count: projects.length,
+        data: { projects: projects } // Nest projects inside a 'projects' key within 'data'
+    });
+});
+
+
+
+
+exports.getMyAssignedProjects = catchAsync(async (req, res, next) => {
+    const userId = req.user.id; // Assumes 'protect' middleware adds user object with id
+
+    if (!userId) {
+        // Should ideally be caught by 'protect' middleware, but added as a safeguard
+        return res.status(401).json({ success: false, message: 'Not authorized (user ID not found)' });
+    }
+
+    // Find projects where the user is listed as contractor, consultant, or projectManager
+    const projects = await Project.find({
+        $or: [
+            { contractor: userId },
+            { consultant: userId },
+            { projectManager: userId }
+            // Add other roles here if they imply project assignment, e.g., committee members
+            // { committeeMembers: userId } // Example if you have such a field
+        ]
+    })
+    .select('_id projectName status') // Select only needed fields for lists/dropdowns
+    .sort({ projectName: 1 }); // Sort alphabetically by name
+
+    res.status(200).json({
+        success: true,
+        count: projects.length,
+        data: { projects: projects } // Nest projects in 'data' object for consistency
+    });
+});

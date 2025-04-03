@@ -4,6 +4,8 @@ const {
     createReport,
     getReports,
     getReportById,
+    updateReport,
+    deleteReport
     // deleteReport // Optional: Add if needed
 } = require('../controllers/reportController');
 
@@ -40,6 +42,8 @@ router.get('/', getReports);
 //    - 'getReportById' runs. (Authorization handled inside controller)
 router.get('/:id', getReportById);
 
+
+router.put('/:id', authorize('admin'),updateReport)
 // 5. DELETE /api/reports/:id - Delete a report (Optional - Uncomment if needed)
 //    - 'protect' runs.
 //    - THEN 'authorize' runs (e.g., only admin).
@@ -49,5 +53,6 @@ router.get('/:id', getReportById);
 //     authorize('admin'), // Example: only allow admin role
 //     deleteReport
 // );
+router.delete('/:id', authorize('admin'), deleteReport);
 
 module.exports = router;

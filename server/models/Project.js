@@ -1,8 +1,13 @@
 
 
+
+
 const mongoose = require('mongoose');
 
+// --- ADDED: Import ONLY the Report model needed for cascade delete ---
+const Report = require('./Report');     // Assuming Report.js is in the same directory
 // Assuming User model exists and has an 'associatedProjects' array field
+// const User = mongoose.model('User'); // User model might already be imported or handled differently
 
 const projectSchema = new mongoose.Schema({
   projectName: {
@@ -106,10 +111,78 @@ projectSchema.virtual('duration').get(function() {
 // Middleware Hooks
 // ==============================================
 
-// --- REMOVED pre('remove') Hook ---
-// Cascade delete is now handled manually in the controller
+// --- ADDED: Middleware for Cascade Delete (REPORTS ONLY) ---
+// IMPORTANT: Use 'function' keyword for middleware to correctly bind 'this'.
 
-// --- Post-Save Middleware ---
+// Middleware hook before a Project document's 'remove()' method is called
+projectSchema.pre('remove', async function(next) {
+  console.log(`[Project Pre-Remove Hook ${this._id}] Project is being removed. Deleting associated reports...`);
+  try {
+    // 'this' refers to the project document being removed
+    const projectId = this._id;
+    await Report.deleteMany({ project: projectId }); // DELETE ONLY REPORTS
+
+    console.log(`[Project Pre-Remove Hook ${this._id}] Cascade delete for reports successful.`);
+    next(); // Continue with the project removal
+  } catch (error) {
+    console.error(`[Project Pre-Remove Hook ${this._id}] Error during report cascade delete:`, error);
+    next(error); // Pass the error to stop the removal process
+  }
+});
+
+// Middleware hook before 'findOneAndDelete' or 'findByIdAndDelete' is executed
+projectSchema.pre('findOneAndDelete', async function(next) {
+  // 'this.getQuery()' retrieves the query conditions used for findOneAndDelete
+  const query = this.getQuery();
+  const projectId = query._id; // Get the ID from the query
+
+  if (projectId) {
+    console.log(`[Project Pre-FindOneAndDelete Hook ${projectId}] Project is being deleted. Deleting associated reports...`);
+    try {
+      await Report.deleteMany({ project: projectId }); // DELETE ONLY REPORTS
+
+      console.log(`[Project Pre-FindOneAndDelete Hook ${projectId}] Cascade delete for reports successful.`);
+      next();
+    } catch (error) {
+      console.error(`[Project Pre-FindOneAndDelete Hook ${projectId}] Error during report cascade delete:`, error);
+      next(error);
+    }
+  } else {
+    console.warn('[Project Pre-FindOneAndDelete Hook] Middleware triggered without _id in query:', query);
+    next(); // Proceed cautiously if no ID found
+  }
+});
+
+// Middleware hook before 'deleteMany' is executed
+projectSchema.pre('deleteMany', async function(next) {
+    // 'this.getFilter()' retrieves the query conditions
+    const filter = this.getFilter();
+    console.log('[Project Pre-DeleteMany Hook] Triggered for Projects with filter:', filter);
+
+    try {
+        // Find the IDs of the projects that *will* be deleted by this operation
+        const projectsToDelete = await mongoose.model('Project').find(filter).select('_id').lean();
+        const projectIds = projectsToDelete.map(p => p._id);
+
+        if (projectIds.length > 0) {
+            console.log(`[Project Pre-DeleteMany Hook] Projects [${projectIds.join(', ')}] are being deleted. Deleting associated reports...`);
+
+            await Report.deleteMany({ project: { $in: projectIds } }); // DELETE ONLY REPORTS
+
+            console.log(`[Project Pre-DeleteMany Hook] Cascade delete for reports successful (multiple projects).`);
+        } else {
+             console.log(`[Project Pre-DeleteMany Hook] No projects matched the filter for deletion.`);
+        }
+        next();
+    } catch (error) {
+        console.error(`[Project Pre-DeleteMany Hook] Error during report cascade delete (multiple projects):`, error);
+        next(error);
+    }
+});
+// --- END: Added Middleware for Cascade Delete ---
+
+
+// --- Post-Save Middleware (Existing - Unchanged) ---
 // Remains useful for updating user associations on project create/update
 projectSchema.post('save', async function(doc, next) {
     const needsUpdate = this.isNew || this.isModified('contractor') || this.isModified('consultant') || this.isModified('projectManager');
@@ -118,7 +191,7 @@ projectSchema.post('save', async function(doc, next) {
     }
     console.log(`[Project Post-Save Hook ${doc._id}] Updating associated projects for users.`);
     try {
-        const User = mongoose.model('User');
+        const User = mongoose.model('User'); // Make sure User model is accessible
         const updatePromises = [];
 
         // Use $addToSet to add project ID to user's associatedProjects array
@@ -136,14 +209,7 @@ projectSchema.post('save', async function(doc, next) {
        }
 
         // Handle removal if a user field was changed FROM a value TO null/undefined (more complex, omitted for brevity focus on creation/addition)
-        // Example for contractor removal (if needed):
-        // if (!this.isNew && this.isModified('contractor') && !doc.contractor) {
-        //    const original = await this.constructor.findById(this._id).select('contractor'); // Fetch previous state might be needed or use different hook
-        //    const oldContractorId = this.getOldValue('contractor'); // Hypothetical function, Mongoose doesn't easily provide old value here
-        //    // Need a way to get the old ID to remove project from that user
-        //    // This highlights complexity, better handled via dedicated user management routes or different hook strategy if needed.
-        // }
-
+        // ... (existing comment block remains)
 
         if (updatePromises.length > 0) {
             await Promise.all(updatePromises);
@@ -159,7 +225,7 @@ projectSchema.post('save', async function(doc, next) {
 });
 
 // ==============================================
-// Indexes for Performance
+// Indexes for Performance (Existing - Unchanged)
 // ==============================================
 projectSchema.index({ projectName: 1 });
 projectSchema.index({ status: 1 });

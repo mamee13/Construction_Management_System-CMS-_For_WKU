@@ -77,7 +77,17 @@ const reportSchema = new mongoose.Schema({
       type: String,
       enum: ['draft', 'submitted', 'archived'],
       default: 'submitted'
-  }
+  },
+   // Section for admin review/feedback
+   feedback: {
+    type: String,
+    trim: true
+},
+status: {
+    type: String,
+    enum: ['draft', 'submitted', 'pending_review', 'approved', 'rejected', 'archived'], // Added review/approved/rejected
+    default: 'submitted'
+}
 }, {
   timestamps: true // Adds createdAt and updatedAt automatically
 });

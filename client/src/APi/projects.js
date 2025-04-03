@@ -188,6 +188,54 @@ const projectsAPI = {
     }
     return statusLabels[status] || status
   },
+
+   /**
+   * Get projects assigned to a specific consultant
+   * @param {string} consultantId - The ID of the consultant
+   * @returns {Promise} - Response with the consultant's projects data
+   */
+   getProjectsByConsultant: async (consultantId) => {
+    if (!consultantId) {
+      // Prevent API call if ID is missing
+      console.warn("getProjectsByConsultant called without consultantId");
+      return Promise.resolve({ data: { projects: [] } }); // Return empty structure
+    }
+    try {
+      // Assuming your backend route is /api/projects/consultant/:consultantId
+      const response = await api.get(`/projects/consultant/${consultantId}`);
+      // Ensure the response structure matches what the component expects
+      // If the backend returns { success: true, data: [...] }, adjust here or in the component
+      // Assuming it returns { success: true, data: { projects: [...] } } or similar
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching projects for consultant ${consultantId}:`, error);
+      throw error.response ? error.response.data : error;
+    }
+  },
+
+
+   /**
+   * Get projects assigned to the currently logged-in user.
+   * Useful for non-admins to populate project dropdowns or lists specific to them.
+   * @returns {Promise<Object>} - Response containing the user's assigned projects.
+   *   Expects { success: true, data: { projects: Array<{_id: string, projectName: string, status: string}> } }
+   */
+   getMyAssignedProjects: async () => {
+    try {
+      // Calls the new backend endpoint GET /api/projects/my-assignments
+      const response = await api.get('/projects/my-assignments');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching assigned projects:', error);
+      // Return a consistent structure on error to avoid breaking components
+      return { success: false, message: error.response?.data?.message || error.message || 'Failed to fetch assigned projects', data: { projects: [] } };
+      // Or re-throw if you handle errors higher up:
+      // throw error.response ? error.response.data : error;
+    }
+  },
+  
+
+
 }
 
 export default projectsAPI

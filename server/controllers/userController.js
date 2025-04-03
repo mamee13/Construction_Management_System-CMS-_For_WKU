@@ -1,40 +1,66 @@
+
+
+// src/controllers/userController.js
+
 const User = require('../models/User');
 const catchAsync = require('../utils/CatchAsync');
 const jwt = require('jsonwebtoken');
 
-// Helper function to check if the requesting user is an admin
-const isAdmin = (req) => {
-  const token = req.header('Authorization').replace('Bearer ', '');
-  const decoded = jwt.verify(token, process.env.JWT_SECRET);
-  return decoded.role === 'admin';
-};
+// Helper function to check if the requesting user is an admin (kept for reference, but direct check is used below)
+// const isAdmin = (req) => { ... }; // Not strictly needed if checking roles directly
 
 // @desc    Get all users
 // @route   GET /api/users
-// @access  Private (Admin only)
+// @access  Private (Admin and Consultant) // --- MODIFIED ACCESS DESCRIPTION ---
 exports.getUsers = catchAsync(async (req, res, next) => {
-  // Verify token and check admin role
-  const token = req.header('Authorization').replace('Bearer ', '');
-  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  // Verify token
+  const token = req.header('Authorization')?.replace('Bearer ', ''); // Use optional chaining
+  if (!token) {
+    return res.status(401).json({ success: false, message: 'Not authorized, no token provided' });
+  }
+
+  let decoded;
+  try {
+    decoded = jwt.verify(token, process.env.JWT_SECRET);
+  } catch (err) {
+    return res.status(401).json({ success: false, message: 'Not authorized, token failed' });
+  }
+
   const requestingUser = await User.findById(decoded.id);
-  if (requestingUser.role !== 'admin') {
+  if (!requestingUser) {
+    // This case might indicate a deleted user whose token is still valid briefly
+    return res.status(401).json({ success: false, message: 'Not authorized, user not found' });
+  }
+
+  // --- MODIFIED PERMISSION CHECK START ---
+  // Allow both 'admin' and 'consultant' roles to fetch the list of users
+  const allowedRoles = ['admin', 'consultant'];
+  if (!allowedRoles.includes(requestingUser.role)) {
     return res.status(403).json({
       success: false,
       message: 'Forbidden: You do not have permission to access this resource'
     });
   }
+  // --- MODIFIED PERMISSION CHECK END ---
 
   const users = await User.find().select('-password'); // Exclude password field
+
+  // --- MODIFIED RESPONSE STRUCTURE START ---
+  // Ensure the structure matches frontend expectation (usersData.data.users)
   res.status(200).json({
     success: true,
-    data: users
+    // data: users // Original structure
+    data: { users: users } // Adjusted structure
   });
+  // --- MODIFIED RESPONSE STRUCTURE END ---
 });
 
 // @desc    Get a single user by ID
 // @route   GET /api/users/:id
-// @access  Private
+// @access  Private (Needs auth, specific role check might be needed depending on use case)
 exports.getUser = catchAsync(async (req, res, next) => {
+  // Add auth check if needed, e.g., ensure user is logged in.
+  // Potentially restrict further based on role if necessary.
   const user = await User.findById(req.params.id).select('-password');
   if (!user) {
     return res.status(404).json({
@@ -44,28 +70,41 @@ exports.getUser = catchAsync(async (req, res, next) => {
   }
   res.status(200).json({
     success: true,
-    data: user
+    data: user // Structure is likely { success: true, data: { ...user data... } }
   });
 });
 
 // @desc    Update user by ID
 // @route   PUT /api/users/:id
-// @access  Private (Admin only)
+// @access  Private (Admin only - Kept as Admin Only) // --- KEPT ADMIN ONLY ---
 exports.updateUser = catchAsync(async (req, res, next) => {
   // Verify token and check admin role
-  const token = req.header('Authorization').replace('Bearer ', '');
-  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  const token = req.header('Authorization')?.replace('Bearer ', '');
+  if (!token) return res.status(401).json({ success: false, message: 'Not authorized, no token' });
+
+  let decoded;
+  try {
+    decoded = jwt.verify(token, process.env.JWT_SECRET);
+  } catch (err) {
+    return res.status(401).json({ success: false, message: 'Not authorized, token failed' });
+  }
+
   const requestingUser = await User.findById(decoded.id);
+  if (!requestingUser) return res.status(401).json({ success: false, message: 'Not authorized, user not found' });
+
+  // --- KEPT ADMIN ONLY CHECK ---
+  // Only Admins can update arbitrary user accounts via this route
   if (requestingUser.role !== 'admin') {
     return res.status(403).json({
       success: false,
       message: 'Forbidden: You do not have permission to update this resource.'
     });
   }
+  // --- END ADMIN ONLY CHECK ---
 
   const updatedUser = await User.findByIdAndUpdate(
     req.params.id,
-    req.body,
+    req.body, // Be cautious about what fields can be updated here
     { new: true, runValidators: true }
   ).select('-password');
 
@@ -78,24 +117,37 @@ exports.updateUser = catchAsync(async (req, res, next) => {
 
   res.status(200).json({
     success: true,
-    data: updatedUser
+    data: updatedUser // Structure is likely { success: true, data: { ...updated user data... } }
   });
 });
 
 // @desc    Delete user by ID
 // @route   DELETE /api/users/:id
-// @access  Private (Admin only)
+// @access  Private (Admin only - Kept as Admin Only) // --- KEPT ADMIN ONLY ---
 exports.deleteUser = catchAsync(async (req, res, next) => {
   // Verify token and check admin role
-  const token = req.header('Authorization').replace('Bearer ', '');
-  const decoded = jwt.verify(token, process.env.JWT_SECRET);
-  const requestingUser = await User.findById(decoded.id);
+  const token = req.header('Authorization')?.replace('Bearer ', '');
+   if (!token) return res.status(401).json({ success: false, message: 'Not authorized, no token' });
+
+   let decoded;
+   try {
+     decoded = jwt.verify(token, process.env.JWT_SECRET);
+   } catch (err) {
+     return res.status(401).json({ success: false, message: 'Not authorized, token failed' });
+   }
+
+   const requestingUser = await User.findById(decoded.id);
+   if (!requestingUser) return res.status(401).json({ success: false, message: 'Not authorized, user not found' });
+
+  // --- KEPT ADMIN ONLY CHECK ---
+  // Only Admins can delete arbitrary user accounts via this route
   if (requestingUser.role !== 'admin') {
     return res.status(403).json({
       success: false,
       message: 'Forbidden: You do not have permission to delete this user.'
     });
   }
+  // --- END ADMIN ONLY CHECK ---
 
   const deletedUser = await User.findByIdAndDelete(req.params.id);
   if (!deletedUser) {
@@ -107,50 +159,49 @@ exports.deleteUser = catchAsync(async (req, res, next) => {
 
   res.status(200).json({
     success: true,
-    message: 'User deleted successfully.'
+    message: 'User deleted successfully.',
+    data: {} // Often good practice to return empty data object on delete
   });
 });
 
-// --- NEW User Self-Update Function ---
-
+// --- User Self-Update Function ---
 // @desc    Update user details (logged-in user updates themselves)
 // @route   PATCH /api/users/updateme
 // @access  Private (User must be logged in)
 exports.updateMe = catchAsync(async (req, res, next) => {
-  // req.user should be populated by your authentication middleware (e.g., 'protect')
+   // Assumes an authentication middleware (like 'protect') has added req.user
    if (!req.user || !req.user.id) {
-       return res.status(401).json({ success: false, message: 'Not authorized, user not found in request' });
-       // return next(new ErrorResponse('Not authorized', 401));
+       return res.status(401).json({ success: false, message: 'Not authorized, user information missing from request' });
    }
-  console.log('User ID from request:', req.user.id); // Debugging line
-  // 1. Filter out fields that users should NOT be allowed to update themselves
+  console.log('User ID from request:', req.user.id);
+
   const allowedUpdates = { ...req.body };
-  const forbiddenFields = ['role', 'password', 'isActive', '_id', 'associatedProjects', 'createdAt', 'updatedAt'];
+  const forbiddenFields = ['role', 'password', 'isActive', '_id', 'associatedProjects', 'createdAt', 'updatedAt', 'passwordChangedAt', 'passwordResetToken', 'passwordResetExpires']; // Added more potentially sensitive fields
   forbiddenFields.forEach(field => delete allowedUpdates[field]);
-    console.log('2')
-  // Check if email is being updated and if it's already taken by another user
+
   if (allowedUpdates.email) {
       const existingUser = await User.findOne({ email: allowedUpdates.email });
       if (existingUser && existingUser._id.toString() !== req.user.id) {
            return res.status(400).json({ success: false, message: 'Email address is already in use by another account.' });
-          // return next(new ErrorResponse('Email address already in use', 400));
       }
   }
 
-  // 2. Update user document
   const updatedUser = await User.findByIdAndUpdate(req.user.id, allowedUpdates, {
-      new: true, // Return the updated document
-      runValidators: true // Ensure schema validations run
-  }).select('-password'); // Exclude password
-   console.log('3')
+      new: true,
+      runValidators: true
+  }).select('-password');
+
    if (!updatedUser) {
-      // This shouldn't happen if the token was valid, but good to check
-      return res.status(404).json({ success: false, message: 'User not found.' });
+      return res.status(404).json({ success: false, message: 'User not found during update process.' }); // More specific error
   }
-console.log('4')
+
   res.status(200).json({
       success: true,
-      data: { user: updatedUser } // Return updated user data (excluding password)
+      // --- MODIFIED RESPONSE STRUCTURE CONSISTENCY ---
+      // Return the user data nested under a 'user' key or directly under 'data'
+      // Let's match the single getUser structure: data: updatedUser
+      data: updatedUser
+      // data: { user: updatedUser } // Alternative structure
+      // --- END MODIFICATION ---
   });
-  console.log('5')
 });
