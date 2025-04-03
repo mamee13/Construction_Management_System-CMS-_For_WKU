@@ -1,375 +1,167 @@
-// const Project = require('../models/Project');
-// const catchAsync = require('../utils/CatchAsync');
-// const jwt = require('jsonwebtoken');
-// const User = require('../models/User');
-
-// // Helper function to check if user is admin
-// const isAdmin = (req) => {
-//   const token = req.header('Authorization').replace('Bearer ', '');
-//   const decoded = jwt.verify(token, process.env.JWT_SECRET);
-//   return decoded.role === 'admin';
-// };
-
-// // @desc    Create new project
-// // @route   POST /api/projects
-// // @access  Private (Admin only)
-// exports.createProject = catchAsync(async (req, res, next) => {
-//   const token = req.header('Authorization').replace('Bearer ', '');
-//   console.log("1");
 
 
-//   // Verify the JWT token
-//   const decoded = jwt.verify(token, process.env.JWT_SECRET);
-//   console.log("2");
 
-//   // Get the user and role from the decoded token
-//   const user = await User.findById(decoded.id);
-//   console.log("3");
-//   // Only an admin can create new user accounts
-//   if (user.role !== 'admin') {
-//     return res.status(403).json({
-//       success: false,
-//       message: 'You do not have permission to create a new user account.'
-//     });
-//   }
-//  console.log("4")
-  
-//     const {
-//       projectName,
-//       projectDescription,
-//       startDate,
-//       endDate,
-//       projectLocation,
-//       projectBudget,
-//       contractor,
-//       consultant,
-//       materials,
-//       schedules,
-//       comments,
-//       status
-//     } = req.body;
-//     try {
-//         const project = await Project.create({
-//           projectName,
-//           projectDescription,
-//           startDate,
-//           endDate,
-//           projectLocation,
-//           projectBudget,
-//           contractor,
-//           consultant,
-//           materials,
-//           schedules,
-//           comments,
-//           status
-//         });
-//         console.log("Project created successfully");
-//         res.status(201).json({
-//           success: true,
-//           data: project
-//         });
-//       } catch (err) {
-//         console.error(err);
-//         res.status(500).json({
-//           success: false,
-//           message: 'Error creating project'
-//         });
-//       }
-//   });
-
-// // @desc    Get all projects
-// // @route   GET /api/projects
-// // @access  Public
-// exports.getProjects = catchAsync(async (req, res, next) => {
-//     console.log("1");
-//     try {
-//       const projects = await Project.find();
-//       //console.log(projects)
-//       res.status(201).json({
-//         success: true,
-//         data: projects
-//       });
-//     } catch (err) {
-//       console.error(err);
-//       res.status(500).json({
-//         success: false,
-//         message: 'Error fetching projects'
-//       });
-//     }
-//   });
-
-// // @desc    Get project by ID
-// // @route   GET /api/projects/:id
-// // @access  Public
-// exports.getProject = catchAsync(async (req, res, next) => {
-//   const project = await Project.findById(req.params.id);
-
-//   if (!project) {
-//     return res.status(404).json({
-//       success: false,
-//       message: 'Project not found.'
-//     });
-//   }
-
-//   res.status(200).json({
-//     success: true,
-//     data: project
-//   });
-// });
-
-// // @desc    Delete project
-// // @route   DELETE /api/projects/:id
-// // @access  Private (Admin only)
-// exports.deleteProject = catchAsync(async (req, res, next) => {
-//     const token = req.header('Authorization').replace('Bearer ', '');
-//     console.log("1");
-  
-  
-//     // Verify the JWT token
-//     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-//     console.log("2");
-  
-//     // Get the user and role from the decoded token
-//     const user = await User.findById(decoded.id);
-//     console.log("3");
-//     // Only an admin can create new user accounts
-//     if (user.role !== 'admin') {
-//       return res.status(403).json({
-//         success: false,
-//         message: 'You do not have permission to create a new user account.'
-//       });
-//     }
-
-//   const project = await Project.findByIdAndDelete(req.params.id);
-
-//   if (!project) {
-//     return res.status(404).json({
-//       success: false,
-//       message: 'Project not found.'
-//     });
-//   }
-
-//   res.status(200).json({
-//     success: true,
-//     message: 'Project deleted successfully.'
-//   });
-// });
-
-// // @desc    Update project
-// // @route   PUT /api/projects/:id
-// // @access  Private (Admin only)
-// exports.updateProject = catchAsync(async (req, res, next) => {
-
-//   console.log("1");
-//   const token = req.header('Authorization').replace('Bearer ', '');
-//     console.log("1");
-  
-  
-//     // Verify the JWT token
-//     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-//     console.log("2");
-  
-//     // Get the user and role from the decoded token
-//     const user = await User.findById(decoded.id);
-//     console.log("3");
-//     // Only an admin can create new user accounts
-//     if (user.role !== 'admin') {
-//       return res.status(403).json({
-//         success: false,
-//         message: 'You do not have permission to create a new user account.'
-//       });
-//     }
-//   // Attempt to update the project with validation
-//   const project = await Project.findByIdAndUpdate(req.params.id, req.body, {
-//     new: true,
-//     runValidators: true
-//   });
-//   console.log(project);
-//   // If no project found, send a 404 response
-//   if (!project) {
-//     return res.status(404).json({
-//       success: false,
-//       message: 'Project not found.'
-//     });
-//   }
-
-//   // Respond with the updated project data
-//   res.status(200).json({
-//     success: true,
-//     data: project
-//   });
-// });
-
+const mongoose = require('mongoose'); // Import mongoose for ObjectId validation
 const Project = require('../models/Project');
 const User = require('../models/User'); // Assuming User model is in ../models/User
+const Material = require('../models/Material'); // Import related models
+const Schedule = require('../models/Schedule');
+const Task = require('../models/Task');
+const Comment = require('../models/Comment');
 const catchAsync = require('../utils/CatchAsync'); // Assuming you have this utility
 const jwt = require('jsonwebtoken');
-// const ErrorResponse = require('../utils/ErrorResponse'); // Optional: For consistent error handling
+// const ErrorResponse = require('../utils/ErrorResponse'); // Optional
 
-// --- Authorization Middleware ---
-// Place this before your route handlers or apply it in your router setup
+// --- Authorization Middleware (isAdminMiddleware - Keep as is) ---
 exports.isAdminMiddleware = catchAsync(async (req, res, next) => {
     let token;
-
-    // Check for Bearer token in Authorization header
     if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
         token = req.headers.authorization.split(' ')[1];
     }
-    // else if (req.cookies.token) { // Alternative: Check for token in cookies
-    //   token = req.cookies.token;
-    // }
-
     if (!token) {
-        // Using 401 for unauthorized access
-        return res.status(401).json({ success: false, message: 'Not authorized to access this route (no token)' });
-        // Or use ErrorResponse: return next(new ErrorResponse('Not authorized to access this route', 401));
+        return res.status(401).json({ success: false, message: 'Not authorized (no token)' });
     }
-
     try {
-        // Verify token
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-        // Find user and check role
         const user = await User.findById(decoded.id);
-
         if (!user) {
-             return res.status(401).json({ success: false, message: 'Not authorized (user not found)' });
-            // return next(new ErrorResponse('User not found', 401));
+            return res.status(401).json({ success: false, message: 'Not authorized (user not found)' });
         }
-
         if (user.role !== 'admin') {
-            // Using 403 for forbidden access (valid user, insufficient permissions)
-            return res.status(403).json({ success: false, message: 'User role does not have permission for this action' });
-           // return next(new ErrorResponse('User role does not have permission for this action', 403));
+            return res.status(403).json({ success: false, message: 'Admin privileges required for this action' });
         }
-
-        // Grant access, optionally attach user to request
         req.user = user;
         next();
-
     } catch (err) {
-         console.error("Auth Error:", err);
-         return res.status(401).json({ success: false, message: 'Not authorized (token failed)' });
-        // return next(new ErrorResponse('Not authorized to access this route', 401));
+        console.error("Auth Error:", err.message);
+        return res.status(401).json({ success: false, message: 'Not authorized (token failed)' });
     }
 });
 
+// --- CRUD Operations ---
 
 // @desc    Create new project
 // @route   POST /api/projects
 // @access  Private (Admin only - Use isAdminMiddleware in router)
 exports.createProject = catchAsync(async (req, res, next) => {
-    // req.body should NOT contain materials, schedules, comments arrays initially.
-    // These are managed via middleware on those models.
     const {
-        projectName,
-        projectDescription,
-        startDate,
-        endDate,
-        projectLocation,
-        projectBudget,
-        contractor, // Expect ObjectId
-        consultant, // Expect ObjectId
-        status      // Optional, defaults to 'planned' in schema
+        projectName, projectDescription, startDate, endDate, projectLocation,
+        projectBudget, contractor, consultant, projectManager, status
     } = req.body;
 
-    // Basic validation (can add more robust validation library like Joi)
-    if (!projectName || !projectDescription || !startDate || !endDate || !projectLocation || projectBudget === undefined || !contractor || !consultant) {
-         return res.status(400).json({ success: false, message: 'Missing required project fields' });
-        // return next(new ErrorResponse('Please provide all required project fields', 400));
+    if (!projectName || !projectDescription || !startDate || !endDate || !projectLocation || projectBudget === undefined || !contractor || !consultant || !projectManager) {
+        return res.status(400).json({ success: false, message: 'Missing required project fields' });
     }
 
     const project = await Project.create({
-        projectName,
-        projectDescription,
-        startDate,
-        endDate,
-        projectLocation,
-        projectBudget,
-        contractor,
-        consultant,
-        status // Will use default if not provided
+        projectName, projectDescription, startDate, endDate, projectLocation,
+        projectBudget, contractor, consultant, projectManager, status
     });
 
-    console.log("Project created successfully:", project._id);
+    console.log(`Project created successfully: ${project._id}`);
+    // The post('save') hook handles adding project to users
     res.status(201).json({
         success: true,
-        data: project // Return the newly created project
+        data: project
     });
 });
 
 // @desc    Get all projects
 // @route   GET /api/projects
-// @access  Public (or Private based on your needs)
+// @access  Public (or Private)
 exports.getProjects = catchAsync(async (req, res, next) => {
-    // Consider adding filtering, sorting, pagination here later
     const projects = await Project.find()
-        .populate('contractor', 'firstName lastName') // Populate basic info for list view
-        .populate('consultant', 'firstName lastName')
-        .sort({ createdAt: -1 }); // Sort by newest first
+        // Also add isActive here if needed for list views
+        .populate('contractor', 'firstName lastName email isActive')
+        .populate('consultant', 'firstName lastName email isActive')
+        .populate('projectManager', 'firstName lastName email isActive')
+        .sort({ createdAt: -1 });
 
-    res.status(200).json({ // Use 200 OK for successful GET
+    res.status(200).json({
         success: true,
-        count: projects.length, // Good practice to include count
+        count: projects.length,
         data: projects
     });
 });
 
-// @desc    Get single project by ID (POPULATED)
+// @desc    Get single project by ID (Fully Populated - UPDATED)
 // @route   GET /api/projects/:id
 // @access  Public (or Private)
 exports.getProject = catchAsync(async (req, res, next) => {
-    const project = await Project.findById(req.params.id)
-        .populate('materials') // Populate the materials array fully
-        .populate('schedules') // Populate the schedules array fully
-        .populate('tasks')     // Populate the tasks array fully
+    const projectId = req.params.id;
+    if (!mongoose.Types.ObjectId.isValid(projectId)) {
+         return res.status(400).json({ success: false, message: `Invalid project ID format: ${projectId}` });
+    }
+
+    const project = await Project.findById(projectId)
+        .populate('materials') // Populate fully or select fields as needed
+        .populate('schedules') // Populate fully or select fields as needed
+        .populate('tasks')     // Populate fully or select fields as needed
         .populate({
-            path: 'comments',  // Populate comments array
-            populate: {        // Nested populate for the user within each comment
-                path: 'user',
-                select: 'firstName lastName email _id' // Select specific user fields
-            },
-             options: { sort: { createdAt: -1 } } // Sort comments newest first
+            path: 'comments',
+            populate: { path: 'user', select: 'firstName lastName email _id' },
+            options: { sort: { createdAt: -1 } }
         })
-        .populate('contractor', 'firstName lastName email phone role _id') // Populate contractor details
-        .populate('consultant', 'firstName lastName email phone role _id'); // Populate consultant details
+        // --- MODIFIED POPULATE CALLS TO INCLUDE isActive ---
+        .populate('contractor', 'firstName lastName email phone role _id isActive') // Added isActive
+        .populate('consultant', 'firstName lastName email phone role _id isActive') // Added isActive
+        .populate('projectManager', 'firstName lastName email phone role _id isActive'); // Added isActive
+        // --- END MODIFICATIONS ---
 
     if (!project) {
-        return res.status(404).json({ success: false, message: `Project not found with id ${req.params.id}` });
-       // return next(new ErrorResponse(`Project not found with id of ${req.params.id}`, 404));
+        return res.status(404).json({ success: false, message: `Project not found with id ${projectId}` });
     }
+
+    // Add a log on the server to confirm isActive is present
+    console.log(`[getProject ${projectId}] Populated data being sent:`, JSON.stringify(project, null, 2));
+
 
     res.status(200).json({
         success: true,
-        data: project // Send the fully populated project
+        data: project
     });
 });
 
 // @desc    Update project
-// @route   PATCH /api/projects/:id (Using PATCH is often better for partial updates)
+// @route   PATCH /api/projects/:id (or PUT)
 // @access  Private (Admin only - Use isAdminMiddleware in router)
+// NOTE: Using findByIdAndUpdate doesn't trigger 'post(save)' hook for user association updates
+// Consider changing this to findById + save() pattern if automatic user association updates are needed on project UPDATE
 exports.updateProject = catchAsync(async (req, res, next) => {
-    // Ensure arrays are not accidentally overwritten if sent in body
-    // It's safer to manage array contents (add/remove materials etc.) via dedicated routes
-    console.log("1");
+    const projectId = req.params.id;
+     if (!mongoose.Types.ObjectId.isValid(projectId)) {
+         return res.status(400).json({ success: false, message: `Invalid project ID format: ${projectId}` });
+    }
+
+    // It's better practice to use the findById + save() pattern for updates
+    // if you rely on Mongoose middleware (like your post('save') hook).
+    // Let's keep findByIdAndUpdate for now as per your original code,
+    // but be aware its limitations regarding middleware.
+
     const updateData = { ...req.body };
+    // Prevent modification of arrays/managed fields via main update route
     delete updateData.materials;
     delete updateData.schedules;
     delete updateData.tasks;
     delete updateData.comments;
-    // Also potentially delete fields managed by middleware like totalCost if applicable
+    // Also protect fields like createdAt, updatedAt, _id, __v
+    delete updateData._id;
+    delete updateData.__v;
+    delete updateData.createdAt;
+    delete updateData.updatedAt;
 
-    const project = await Project.findByIdAndUpdate(req.params.id, updateData, {
-        new: true,           // Return the updated document
-        runValidators: true  // Ensure schema validations run on update
+
+    const project = await Project.findByIdAndUpdate(projectId, updateData, {
+        new: true,           // Return the modified document
+        runValidators: true  // Run schema validators
     });
 
     if (!project) {
-         return res.status(404).json({ success: false, message: `Project not found with id ${req.params.id}` });
-        // return next(new ErrorResponse(`Project not found with id of ${req.params.id}`, 404));
+        return res.status(404).json({ success: false, message: `Project not found with id ${projectId}` });
     }
 
-    console.log("Project updated successfully:", project._id);
+    console.log(`Project updated successfully (using findByIdAndUpdate): ${project._id}`);
+    // WARNING: Your 'post("save")' hook DID NOT run here. User associations might be stale if contractor/consultant/pm changed.
     res.status(200).json({
         success: true,
         data: project
@@ -377,25 +169,140 @@ exports.updateProject = catchAsync(async (req, res, next) => {
 });
 
 
-// @desc    Delete project
+// @desc    Delete project **(MANUAL CASCADE DELETE IMPLEMENTED HERE)**
 // @route   DELETE /api/projects/:id
 // @access  Private (Admin only - Use isAdminMiddleware in router)
 exports.deleteProject = catchAsync(async (req, res, next) => {
-    const project = await Project.findById(req.params.id);
-    console.log("2");
-    if (!project) {
-         return res.status(404).json({ success: false, message: `Project not found with id ${req.params.id}` });
-        // return next(new ErrorResponse(`Project not found with id of ${req.params.id}`, 404));
+    const projectId = req.params.id;
+
+    if (!mongoose.Types.ObjectId.isValid(projectId)) {
+        return res.status(400).json({ success: false, message: `Invalid project ID format: ${projectId}` });
     }
- console.log("3");
-    // Use document.remove() to trigger 'pre('remove')' middleware for cascade delete
-    await project.remove();
-console.log("4");
-    console.log("Project deleted successfully:", req.params.id);
+
+    console.log(`Attempting to find project for deletion: ${projectId}`);
+    // Find the project first to get its details (like user IDs)
+    const project = await Project.findById(projectId);
+
+    if (!project) {
+        console.log(`Project not found for deletion: ${projectId}`);
+        return res.status(404).json({ success: false, message: `Project not found with id ${projectId}` });
+    }
+
+    console.log(`Project found: ${projectId}. Starting manual cascade delete process.`);
+
+    try {
+        // --- MANUAL CASCADE DELETE ---
+        const operations = [
+            // 1. Delete related documents from other collections
+            Material.deleteMany({ project: projectId }).exec(),
+            Schedule.deleteMany({ project: projectId }).exec(),
+            Task.deleteMany({ project: projectId }).exec(),
+            Comment.deleteMany({ project: projectId }).exec(),
+        ];
+
+        // 2. Remove project reference from associated users
+        // Use $pull to remove the projectId from the associatedProjects array in User documents
+        if (project.contractor) {
+            operations.push(User.findByIdAndUpdate(project.contractor, { $pull: { associatedProjects: projectId } }).exec());
+        }
+        if (project.consultant) {
+            operations.push(User.findByIdAndUpdate(project.consultant, { $pull: { associatedProjects: projectId } }).exec());
+        }
+        if (project.projectManager) {
+            operations.push(User.findByIdAndUpdate(project.projectManager, { $pull: { associatedProjects: projectId } }).exec());
+        }
+
+        // Execute all deletion and update operations concurrently
+        console.log(`Executing ${operations.length} related delete/update operations...`);
+        const results = await Promise.all(operations);
+        console.log("Related data deletion/update results:", results.map(r => r?.deletedCount || r?.modifiedCount || r)); // Log counts
+
+        // --- DELETE THE PROJECT ITSELF ---
+        console.log(`Related data cleaned up. Deleting project document: ${projectId}`);
+        const deletedProjectResult = await Project.findByIdAndDelete(projectId);
+
+        if (!deletedProjectResult) {
+             console.error(`Failed to delete project ${projectId} after cleaning related data.`);
+              return res.status(500).json({ success: false, message: 'Project found but failed to delete after cleanup.' });
+        }
+
+
+        console.log(`Project ${projectId} and related data deleted successfully (manual cascade).`);
+        res.status(200).json({
+            success: true,
+            message: 'Project and related data deleted successfully.',
+            data: { deletedId: projectId }
+        });
+
+    } catch (error) {
+        console.error(`Error during manual cascade delete for project ${projectId}:`, error);
+         return res.status(500).json({ success: false, message: `Failed to delete project and related data: ${error.message}` });
+    }
+});
+
+
+
+// @desc    Get projects assigned to a specific consultant
+// @route   GET /api/projects/consultant/:consultantId
+// @access  Private (Logged in user, potentially check if user matches consultantId or is admin)
+exports.getProjectsByConsultantId = catchAsync(async (req, res, next) => {
+    const consultantId = req.params.consultantId;
+
+    if (!mongoose.Types.ObjectId.isValid(consultantId)) {
+        return res.status(400).json({ success: false, message: `Invalid consultant ID format: ${consultantId}` });
+    }
+
+    // Optional: Add authorization check - Ensure the logged-in user IS the consultant or an admin
+    // if (req.user.role !== 'admin' && req.user._id.toString() !== consultantId) {
+    //     return res.status(403).json({ success: false, message: 'Not authorized to view these projects' });
+    // }
+
+    const projects = await Project.find({ consultant: consultantId })
+        .populate('contractor', 'firstName lastName email isActive')
+        .populate('consultant', 'firstName lastName email isActive') // Still populate consultant info if needed elsewhere
+        .populate('projectManager', 'firstName lastName email isActive') // Populate PM for display
+        .sort({ createdAt: -1 }); // Sort by creation date, newest first
+
+    if (!projects) {
+        // find() returns empty array, not null, if nothing found. This check might not be needed.
+        return res.status(404).json({ success: false, message: `No projects found for consultant ${consultantId}` });
+    }
+
+    // Match the structure expected by the frontend: { data: { projects: [...] } }
     res.status(200).json({
         success: true,
-        message: 'Project and related data deleted successfully.'
-        // Sending deleted ID can be useful for frontend state update
-        // data: { deletedId: req.params.id }
+        count: projects.length,
+        data: { projects: projects } // Nest projects inside a 'projects' key within 'data'
+    });
+});
+
+
+
+
+exports.getMyAssignedProjects = catchAsync(async (req, res, next) => {
+    const userId = req.user.id; // Assumes 'protect' middleware adds user object with id
+
+    if (!userId) {
+        // Should ideally be caught by 'protect' middleware, but added as a safeguard
+        return res.status(401).json({ success: false, message: 'Not authorized (user ID not found)' });
+    }
+
+    // Find projects where the user is listed as contractor, consultant, or projectManager
+    const projects = await Project.find({
+        $or: [
+            { contractor: userId },
+            { consultant: userId },
+            { projectManager: userId }
+            // Add other roles here if they imply project assignment, e.g., committee members
+            // { committeeMembers: userId } // Example if you have such a field
+        ]
+    })
+    .select('_id projectName status') // Select only needed fields for lists/dropdowns
+    .sort({ projectName: 1 }); // Sort alphabetically by name
+
+    res.status(200).json({
+        success: true,
+        count: projects.length,
+        data: { projects: projects } // Nest projects in 'data' object for consistency
     });
 });

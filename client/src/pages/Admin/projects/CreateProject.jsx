@@ -1,6 +1,6 @@
 
 
-"use client"
+
 
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
@@ -8,17 +8,19 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Formik, Form, Field, ErrorMessage } from "formik"
 import * as Yup from "yup"
 import { toast } from "react-toastify"
-import { ArrowPathIcon, BuildingOfficeIcon } from "@heroicons/react/24/outline"
+import { ArrowPathIcon, BuildingOfficeIcon, UserCircleIcon } from "@heroicons/react/24/outline" // Added UserCircleIcon
 import projectsAPI from "../../../api/projects"
 import usersAPI from "../../../api/users"
-import authAPI from "../../../api/auth"
+//import authAPI from "../../../api/auth"
 
 const CreateProject = () => {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Fetch contractors and consultants
+  // --- Fetch Users by Role ---
+
+  // Fetch Contractors
   const {
     data: contractorsData,
     isLoading: isLoadingContractors,
@@ -26,14 +28,10 @@ const CreateProject = () => {
   } = useQuery({
     queryKey: ["users", "contractor"],
     queryFn: () => usersAPI.getUsersByRole("contractor"),
-    onSuccess: (data) => {
-      console.log("Contractors data loaded:", data)
-    },
-    onError: (error) => {
-      console.error("Error loading contractors:", error)
-    },
+    // Optional: Add onSuccess/onError logging if needed
   })
 
+  // Fetch Consultants
   const {
     data: consultantsData,
     isLoading: isLoadingConsultants,
@@ -41,29 +39,42 @@ const CreateProject = () => {
   } = useQuery({
     queryKey: ["users", "consultant"],
     queryFn: () => usersAPI.getUsersByRole("consultant"),
+    // Optional: Add onSuccess/onError logging if needed
+  })
+
+  // Fetch Project Managers
+  const {
+    data: projectManagersData,
+    isLoading: isLoadingProjectManagers,
+    error: projectManagersError,
+  } = useQuery({
+    queryKey: ["users", "project_manager"], // Use the correct role identifier
+    queryFn: () => usersAPI.getUsersByRole("project_manager"), // Use the correct role identifier
     onSuccess: (data) => {
-      console.log("Consultants data loaded:", data)
+      console.log("Project Managers data loaded:", data)
     },
     onError: (error) => {
-      console.error("Error loading consultants:", error)
+      console.error("Error loading project managers:", error)
     },
   })
 
-  // Create project mutation
+  // --- Create Project Mutation ---
   const createProjectMutation = useMutation({
     mutationFn: projectsAPI.createProject,
     onSuccess: () => {
       toast.success("Project created successfully")
-      queryClient.invalidateQueries({ queryKey: ["projects"] })
+      queryClient.invalidateQueries({ queryKey: ["projects"] }) // Invalidate projects cache
+      queryClient.invalidateQueries({ queryKey: ["users"] }) // Potentially invalidate users if their associated projects change (due to post-save hook)
       navigate("/admin/projects")
     },
     onError: (error) => {
-      toast.error(error.message || "Failed to create project")
+      const errorMessage = error.response?.data?.message || error.message || "Failed to create project"
+      toast.error(errorMessage)
       setIsSubmitting(false)
     },
   })
 
-  // Validation schema
+  // --- Form Validation Schema ---
   const validationSchema = Yup.object({
     projectName: Yup.string()
       .required("Project name is required")
@@ -78,15 +89,19 @@ const CreateProject = () => {
     projectLocation: Yup.string()
       .required("Project location is required")
       .max(100, "Location cannot exceed 100 characters"),
-    projectBudget: Yup.number().required("Project budget is required").min(0, "Budget cannot be negative"),
+    projectBudget: Yup.number()
+      .required("Project budget is required")
+      .min(0, "Budget cannot be negative")
+      .typeError("Budget must be a number"), // Added type error for better UX
     contractor: Yup.string().required("Contractor is required"),
     consultant: Yup.string().required("Consultant is required"),
+    projectManager: Yup.string().required("Project Manager is required"), // Added Project Manager validation
     status: Yup.string()
       .required("Status is required")
       .oneOf(["planned", "in_progress", "completed", "on_hold"], "Invalid status"),
   })
 
-  // Initial form values
+  // --- Initial Form Values ---
   const initialValues = {
     projectName: "",
     projectDescription: "",
@@ -96,35 +111,42 @@ const CreateProject = () => {
     projectBudget: "",
     contractor: "",
     consultant: "",
+    projectManager: "", // Added projectManager initial value
     status: "planned",
-    materials: [],
-    schedules: [],
-    comments: [],
+    // materials, schedules, comments are not set here, they are managed separately
   }
 
-  // Handle form submission
+  // --- Handle Form Submission ---
   const handleSubmit = (values) => {
     setIsSubmitting(true)
 
-    // Format dates to ISO strings
+    // Format dates and ensure budget is a number
     const formattedValues = {
       ...values,
       startDate: new Date(values.startDate).toISOString(),
       endDate: new Date(values.endDate).toISOString(),
       projectBudget: Number(values.projectBudget),
+      // projectManager is already a string (ID), so no formatting needed
     }
+     // Remove empty/unnecessary fields if backend doesn't expect them
+     // delete formattedValues.materials;
+     // delete formattedValues.schedules;
+     // delete formattedValues.comments;
 
+    console.log("Submitting project data:", formattedValues) // Log data being sent
     createProjectMutation.mutate(formattedValues)
   }
 
-  // Check if user is admin, redirect if not
-  if (!authAPI.isAdmin()) {
-    navigate("/dashboard")
-    return null
-  }
+  // --- Admin Check ---
+  // Consider moving this logic to a route guard or higher-level component
+  // if (!authAPI.isAdmin()) {
+  //   navigate("/dashboard"); // Or wherever non-admins should go
+  //   return null; // Prevent rendering the form
+  // }
 
   return (
     <div className="py-10 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto">
+      {/* Header */}
       <div className="sm:flex sm:items-center sm:justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 mb-1">Create New Project</h1>
@@ -132,20 +154,21 @@ const CreateProject = () => {
         </div>
         <button
           type="button"
-          onClick={() => navigate("/admin/projects")}
-          className="mt-4 sm:mt-0 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          onClick={() => navigate(-1)} // Go back to the previous page
+          className="mt-4 sm:mt-0 inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
         >
-          Back to Projects
+          Back
         </button>
       </div>
 
+      {/* Form Card */}
       <div className="bg-white shadow rounded-lg overflow-hidden">
         <div className="px-4 py-5 sm:p-6">
           <Formik
             initialValues={initialValues}
             validationSchema={validationSchema}
             onSubmit={handleSubmit}
-            validateOnChange={false}
+            validateOnChange={false} // Validate only on blur/submit
             validateOnBlur={true}
           >
             {({ errors, touched }) => (
@@ -154,14 +177,14 @@ const CreateProject = () => {
                   {/* Project Name */}
                   <div className="sm:col-span-2">
                     <label htmlFor="projectName" className="block text-sm font-medium text-gray-700">
-                      Project Name
+                      Project Name <span className="text-red-500">*</span>
                     </label>
                     <div className="mt-1">
                       <Field
                         type="text"
                         name="projectName"
                         id="projectName"
-                        placeholder="Science Building Construction"
+                        placeholder="e.g., Downtown Office Tower Renovation"
                         className={`shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md ${
                           errors.projectName && touched.projectName ? "border-red-500" : ""
                         }`}
@@ -173,7 +196,7 @@ const CreateProject = () => {
                   {/* Project Description */}
                   <div className="sm:col-span-2">
                     <label htmlFor="projectDescription" className="block text-sm font-medium text-gray-700">
-                      Project Description
+                      Project Description <span className="text-red-500">*</span>
                     </label>
                     <div className="mt-1">
                       <Field
@@ -181,7 +204,7 @@ const CreateProject = () => {
                         name="projectDescription"
                         id="projectDescription"
                         rows={3}
-                        placeholder="Detailed description of the project..."
+                        placeholder="Detailed scope, objectives, and deliverables..."
                         className={`shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md ${
                           errors.projectDescription && touched.projectDescription ? "border-red-500" : ""
                         }`}
@@ -193,14 +216,14 @@ const CreateProject = () => {
                   {/* Project Location */}
                   <div className="sm:col-span-2">
                     <label htmlFor="projectLocation" className="block text-sm font-medium text-gray-700">
-                      Project Location
+                      Project Location <span className="text-red-500">*</span>
                     </label>
                     <div className="mt-1">
                       <Field
                         type="text"
                         name="projectLocation"
                         id="projectLocation"
-                        placeholder="Main Campus, Building 3"
+                        placeholder="e.g., 123 Main St, Anytown, USA"
                         className={`shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md ${
                           errors.projectLocation && touched.projectLocation ? "border-red-500" : ""
                         }`}
@@ -212,7 +235,7 @@ const CreateProject = () => {
                   {/* Start Date */}
                   <div>
                     <label htmlFor="startDate" className="block text-sm font-medium text-gray-700">
-                      Start Date
+                      Start Date <span className="text-red-500">*</span>
                     </label>
                     <div className="mt-1">
                       <Field
@@ -230,7 +253,7 @@ const CreateProject = () => {
                   {/* End Date */}
                   <div>
                     <label htmlFor="endDate" className="block text-sm font-medium text-gray-700">
-                      End Date
+                      End Date <span className="text-red-500">*</span>
                     </label>
                     <div className="mt-1">
                       <Field
@@ -248,7 +271,7 @@ const CreateProject = () => {
                   {/* Project Budget */}
                   <div>
                     <label htmlFor="projectBudget" className="block text-sm font-medium text-gray-700">
-                      Project Budget ($)
+                      Project Budget ($) <span className="text-red-500">*</span>
                     </label>
                     <div className="mt-1">
                       <Field
@@ -256,8 +279,8 @@ const CreateProject = () => {
                         name="projectBudget"
                         id="projectBudget"
                         min="0"
-                        step="1000"
-                        placeholder="100000"
+                        step="1" // Allow any number, not just thousands
+                        placeholder="e.g., 500000"
                         className={`shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md ${
                           errors.projectBudget && touched.projectBudget ? "border-red-500" : ""
                         }`}
@@ -269,7 +292,7 @@ const CreateProject = () => {
                   {/* Status */}
                   <div>
                     <label htmlFor="status" className="block text-sm font-medium text-gray-700">
-                      Project Status
+                      Project Status <span className="text-red-500">*</span>
                     </label>
                     <div className="mt-1">
                       <Field
@@ -290,9 +313,9 @@ const CreateProject = () => {
                   </div>
 
                   {/* Contractor */}
-                  <div>
+                  <div className="sm:col-span-1"> {/* Adjusted span */}
                     <label htmlFor="contractor" className="block text-sm font-medium text-gray-700">
-                      Contractor
+                      Contractor <span className="text-red-500">*</span>
                     </label>
                     <div className="mt-1">
                       <Field
@@ -306,10 +329,10 @@ const CreateProject = () => {
                       >
                         <option value="">Select a contractor</option>
                         {contractorsData?.data?.users
-                          ?.filter((contractor) => contractor.isActive)
+                          ?.filter((user) => user.isActive) // Ensure only active users are shown
                           .map((contractor) => (
                             <option key={contractor._id} value={contractor._id}>
-                              {contractor.firstName} {contractor.lastName}
+                              {contractor.firstName} {contractor.lastName} ({contractor.email})
                             </option>
                           ))}
                       </Field>
@@ -321,9 +344,9 @@ const CreateProject = () => {
                       )}
                       {!isLoadingContractors &&
                         !contractorsError &&
-                        contractorsData?.data?.users?.filter((contractor) => contractor.isActive).length === 0 && (
+                        (!contractorsData?.data?.users || contractorsData.data.users.filter(u => u.isActive).length === 0) && (
                           <p className="mt-1 text-sm text-yellow-600">
-                            No contractors found. Please create contractor users first.
+                            No active contractors found. Please add/activate contractor users.
                           </p>
                         )}
                       <ErrorMessage name="contractor" component="p" className="mt-1 text-sm text-red-600" />
@@ -331,9 +354,9 @@ const CreateProject = () => {
                   </div>
 
                   {/* Consultant */}
-                  <div>
+                  <div className="sm:col-span-1"> {/* Adjusted span */}
                     <label htmlFor="consultant" className="block text-sm font-medium text-gray-700">
-                      Consultant
+                      Consultant <span className="text-red-500">*</span>
                     </label>
                     <div className="mt-1">
                       <Field
@@ -347,10 +370,10 @@ const CreateProject = () => {
                       >
                         <option value="">Select a consultant</option>
                         {consultantsData?.data?.users
-                          ?.filter((consultant) => consultant.isActive)
+                           ?.filter((user) => user.isActive) // Ensure only active users are shown
                           .map((consultant) => (
                             <option key={consultant._id} value={consultant._id}>
-                              {consultant.firstName} {consultant.lastName}
+                              {consultant.firstName} {consultant.lastName} ({consultant.email})
                             </option>
                           ))}
                       </Field>
@@ -360,45 +383,87 @@ const CreateProject = () => {
                           Error loading consultants: {consultantsError.message}
                         </p>
                       )}
-                      {!isLoadingConsultants &&
+                       {!isLoadingConsultants &&
                         !consultantsError &&
-                        consultantsData?.data?.users?.filter((consultant) => consultant.isActive).length === 0 && (
+                        (!consultantsData?.data?.users || consultantsData.data.users.filter(u => u.isActive).length === 0) && (
                           <p className="mt-1 text-sm text-yellow-600">
-                            No consultants found. Please create consultant users first.
+                            No active consultants found. Please add/activate consultant users.
                           </p>
                         )}
                       <ErrorMessage name="consultant" component="p" className="mt-1 text-sm text-red-600" />
                     </div>
                   </div>
-                </div>
 
-                {/* Submit Button */}
-                <div className="flex justify-end">
+                  {/* Project Manager */}
+                  <div className="sm:col-span-2"> {/* Span full width */}
+                    <label htmlFor="projectManager" className="block text-sm font-medium text-gray-700">
+                      Project Manager <span className="text-red-500">*</span>
+                    </label>
+                    <div className="mt-1">
+                      <Field
+                        as="select"
+                        name="projectManager"
+                        id="projectManager"
+                        className={`shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md ${
+                          errors.projectManager && touched.projectManager ? "border-red-500" : ""
+                        }`}
+                        disabled={isLoadingProjectManagers}
+                      >
+                        <option value="">Select a project manager</option>
+                        {projectManagersData?.data?.users
+                           ?.filter((user) => user.isActive) // Ensure only active users are shown
+                          .map((pm) => (
+                            <option key={pm._id} value={pm._id}>
+                              {pm.firstName} {pm.lastName} ({pm.email})
+                            </option>
+                          ))}
+                      </Field>
+                      {isLoadingProjectManagers && <p className="mt-1 text-sm text-gray-500">Loading project managers...</p>}
+                      {projectManagersError && (
+                        <p className="mt-1 text-sm text-red-600">
+                          Error loading project managers: {projectManagersError.message}
+                        </p>
+                      )}
+                       {!isLoadingProjectManagers &&
+                        !projectManagersError &&
+                        (!projectManagersData?.data?.users || projectManagersData.data.users.filter(u => u.isActive).length === 0) && (
+                          <p className="mt-1 text-sm text-yellow-600">
+                            No active project managers found. Please add/activate project manager users.
+                          </p>
+                        )}
+                      <ErrorMessage name="projectManager" component="p" className="mt-1 text-sm text-red-600" />
+                    </div>
+                  </div>
+
+                </div> {/* End Grid */}
+
+                {/* Submit/Cancel Buttons */}
+                <div className="flex justify-end pt-5">
                   <button
                     type="button"
-                    onClick={() => navigate("/admin/projects")}
+                    onClick={() => navigate(-1)} // Go back
                     className="mr-3 bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    disabled={isSubmitting}
-                    className={`inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white 
+                    disabled={isSubmitting || createProjectMutation.isLoading} // Disable during submission
+                    className={`inline-flex justify-center items-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white
                     ${
-                      isSubmitting
+                      isSubmitting || createProjectMutation.isLoading
                         ? "bg-indigo-400 cursor-not-allowed"
                         : "bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                     }`}
                   >
-                    {isSubmitting ? (
+                    {isSubmitting || createProjectMutation.isLoading ? (
                       <>
-                        <ArrowPathIcon className="h-5 w-5 mr-2 animate-spin" />
+                        <ArrowPathIcon className="h-5 w-5 mr-2 animate-spin" aria-hidden="true" />
                         Creating...
                       </>
                     ) : (
                       <>
-                        <BuildingOfficeIcon className="h-5 w-5 mr-2" />
+                        <BuildingOfficeIcon className="h-5 w-5 mr-2" aria-hidden="true" />
                         Create Project
                       </>
                     )}

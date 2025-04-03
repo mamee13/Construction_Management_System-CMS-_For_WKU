@@ -1,4 +1,3 @@
-"use client"
 
 import { useState } from "react"
 import { Outlet, NavLink, useNavigate } from "react-router-dom"
@@ -40,6 +39,8 @@ const MainLayout = () => {
       consultant: [
         { name: "Projects", href: "/projects", icon: BuildingOfficeIcon },
         { name: "Reports", href: "/reports", icon: DocumentTextIcon },
+        {name : "Schedules", href: "/schedules", icon: ClipboardDocumentListIcon},
+        { name: "Tasks", href: "/tasks", icon: ClipboardDocumentListIcon },
       ],
       contractor: [
         { name: "Projects", href: "/projects", icon: BuildingOfficeIcon },
