@@ -28,7 +28,7 @@ const materialSchema = new mongoose.Schema({
     type: Number,
     required: [true, 'Please provide the cost per unit'],
     min: [0, 'Cost per unit cannot be negative']
-  },
+  }, 
   totalCost: {
     type: Number,
     default: function() {

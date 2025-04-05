@@ -14,7 +14,7 @@ const userRoutes = require('./routes/userRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 // CORS middleware - MUST come BEFORE routes
 app.use(cors({
-  origin: 'http://localhost:5173', // Your frontend URL
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173', // Your frontend URL
   methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'], // Include OPTIONS explicitly
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
