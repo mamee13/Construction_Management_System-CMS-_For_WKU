@@ -57,7 +57,7 @@ router.post('/', authMiddleware, projectController.createProject); // Assuming c
 
 // Get project by SPECIFIC ID
 // Consider if this needs authMiddleware too for non-public projects
-router.get('/:id', projectController.getProject);
+router.get('/:id',authMiddleware, projectController.getProject);
 
 // Update project by ID (Needs Admin)
 // Apply middlewares before the controller

@@ -1,0 +1,42 @@
+/* PDF Export Styles */
+.pdf-export-mode {
+    /* Override any complex color functions with simple colors */
+    --tw-text-opacity: 1 !important;
+    --tw-bg-opacity: 1 !important;
+    --tw-border-opacity: 1 !important;
+  
+    /* Force simple colors for charts */
+    --chart-1: 79, 70, 229 !important; /* indigo-600 */
+    --chart-2: 59, 130, 246 !important; /* blue-500 */
+    --chart-3: 16, 185, 129 !important; /* green-500 */
+    --chart-4: 239, 68, 68 !important; /* red-500 */
+    --chart-5: 245, 158, 11 !important; /* amber-500 */
+  }
+  
+  /* Override specific problematic colors during export */
+  .pdf-export-mode .bg-indigo-500 {
+    background-color: #6366f1 !important;
+  }
+  
+  .pdf-export-mode .bg-blue-500 {
+    background-color: #3b82f6 !important;
+  }
+  
+  .pdf-export-mode .bg-green-500 {
+    background-color: #10b981 !important;
+  }
+  
+  .pdf-export-mode .bg-red-500 {
+    background-color: #ef4444 !important;
+  }
+  
+  .pdf-export-mode .bg-yellow-500 {
+    background-color: #f59e0b !important;
+  }
+  
+  /* Override chart colors */
+  .pdf-export-mode .recharts-sector,
+  .pdf-export-mode .recharts-rectangle {
+    stroke: #ffffff !important;
+  }
+  

@@ -28,7 +28,10 @@ const authAPI = {
       throw error.response ? error.response.data : error;
     }
   },
-  
+
+  getToken: () => {
+    return localStorage.getItem('wku_cms_token');
+  },
   /**
    * Register a new user (Admin only)
    * @param {Object} userData - New user data
