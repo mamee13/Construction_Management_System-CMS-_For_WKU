@@ -67,6 +67,12 @@ import MaterialDetail from "./pages/Contractor/material/MaterialDetail"
 import MaterialsList from "./pages/Contractor/material/MaterialsList"
 import CreateMaterial from "./pages/Contractor/material/CreateMaterial"
 import EditMaterial from "./pages/Contractor/material/EditMaterial"
+import ProjectsListForContractor from "./pages/Contractor/projects/ProjectsList"
+import ProjectDetailForContractor from "./pages/Contractor/projects/ProjectDetail"
+import ReportsListForContractor from "./pages/Contractor/reports/ReportsList"
+import CreateReportForContractor from "./pages/Contractor/reports/CreateReport"
+import ReportDetailForContractor from "./pages/Contractor/reports/ReportDetail"
+import Analytics from "./pages/Admin/Analytics"
 // Protected route component
 const ProtectedRoute = ({ children, requiredRole }) => {
   const isAuthenticated = authAPI.isAuthenticated()
@@ -239,6 +245,84 @@ function App() {
 
             }
             />
+
+          <Route
+           path="materials/create" // Renders at /materials
+           element={
+            <ProtectedRoute requiredRole="contractor">
+              <CreateMaterial />
+            </ProtectedRoute>
+
+            }
+            />
+
+            <Route
+           path="materials/:id" // Renders at /materials
+           element={
+            <ProtectedRoute requiredRole="contractor">
+              <MaterialDetail />
+            </ProtectedRoute>
+
+            }
+            />
+
+          <Route
+           path="materials/edit/:id" // Renders at /materials
+           element={
+            <ProtectedRoute requiredRole="contractor">
+              <EditMaterial />
+            </ProtectedRoute>
+
+            }
+            />
+           
+           <Route
+           path="contractor-projects" // Renders at /materials
+           element={
+            <ProtectedRoute requiredRole="contractor">
+              <ProjectsListForContractor />
+            </ProtectedRoute>
+
+            }
+            />
+            <Route
+           path="contractor-projects/:id" // Renders at /materials
+           element={
+            <ProtectedRoute requiredRole="contractor">
+              <ProjectDetailForContractor />
+            </ProtectedRoute>
+
+            }
+            />
+            <Route
+            path="contractor-reports" // Renders at /materials
+            element={
+            <ProtectedRoute requiredRole="contractor">
+              <ReportsListForContractor />
+            </ProtectedRoute>
+
+            }
+            />
+            <Route
+            path="contractor-reports/create" // Renders at /materials
+            element={
+            <ProtectedRoute requiredRole="contractor">
+              <CreateReportForContractor />
+            </ProtectedRoute>
+
+            }
+            />
+            <Route
+            path="contractor-reports/:id" // Renders at /materials
+            element={
+            <ProtectedRoute requiredRole="contractor">
+              <ReportDetailForContractor />
+            </ProtectedRoute>
+
+            }
+            />
+            
+
         
            {/*the end of the consultant routes */}
            
@@ -289,6 +373,7 @@ function App() {
             {/* Add more Report routes as needed */}
            <Route path="reports" element={<ReportList />} />
            <Route path="reports/:id" element={<ReportDetailAdmin />} />
+           <Route path="analytics" element={<Analytics />} />
           {/* Add more admin routes as needed */}
         </Route>
        

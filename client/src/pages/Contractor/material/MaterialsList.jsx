@@ -30,16 +30,32 @@ const MaterialsList = () => {
   const currentUser = authAPI.getCurrentUser()
 
   // Fetch all materials
+  // const {
+  //   data: materialsData,
+  //   isLoading: isLoadingMaterials,
+  //   error: materialsError,
+  //   refetch: refetchMaterials,
+  // } = useQuery({
+  //   queryKey: ["materials"],
+  //   queryFn: materialsAPI.getAllMaterials,
+  // })
   const {
     data: materialsData,
     isLoading: isLoadingMaterials,
     error: materialsError,
     refetch: refetchMaterials,
-  } = useQuery({
-    queryKey: ["materials"],
-    queryFn: materialsAPI.getAllMaterials,
-  })
+    isError: isMaterialsError
+} = useQuery({
+    queryKey: ["materials", currentUser?._id],
+    // CORRECTED queryFn: Use an arrow function
+    queryFn: () => materialsAPI.getAllMaterials(), // <<< FIX HERE
+    // The arrow function receives the React Query context but doesn't use it.
+    // It calls getAllMaterials() with no arguments, so the 'params' inside
+    // getAllMaterials will correctly default to {} as intended.
 
+    enabled: !!currentUser,
+    staleTime: 1000 * 60 * 5,
+});
   // Fetch projects for filtering
   const { data: projectsData, isLoading: isLoadingProjects } = useQuery({
     queryKey: ["projects"],
@@ -138,7 +154,7 @@ const MaterialsList = () => {
         </div>
         <button
           type="button"
-          onClick={() => navigate("/contractor/materials/create")}
+          onClick={() => navigate("/materials/create")}
           className="mt-4 sm:mt-0 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
         >
           <PlusIcon className="h-5 w-5 mr-2" />
@@ -438,7 +454,7 @@ const MaterialsList = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <button
-                        onClick={() => navigate(`/contractor/materials/${material._id}`)}
+                        onClick={() => navigate(`/materials/${material._id}`)}
                         className="text-indigo-600 hover:text-indigo-900 mr-3"
                         title="View Material"
                       >
@@ -448,7 +464,7 @@ const MaterialsList = () => {
                       {canModifyMaterial(material) && (
                         <>
                           <button
-                            onClick={() => navigate(`/contractor/materials/edit/${material._id}`)}
+                            onClick={() => navigate(`/materials/edit/${material._id}`)}
                             className="text-indigo-600 hover:text-indigo-900 mr-3"
                             title="Edit Material"
                           >

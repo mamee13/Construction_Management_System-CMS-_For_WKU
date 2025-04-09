@@ -73,21 +73,21 @@ const reportSchema = new mongoose.Schema({
       url: String // URL to file stored elsewhere (e.g., S3, local storage)
   }],
   // Status of the report itself (e.g., draft, submitted)
-  status: {
-      type: String,
-      enum: ['draft', 'submitted', 'archived'],
-      default: 'submitted'
-  },
+  // status: {
+  //     type: String,
+  //     enum: ['draft', 'submitted', 'archived'],
+  //     default: 'submitted'
+  // },
    // Section for admin review/feedback
    feedback: {
     type: String,
     trim: true
 },
-status: {
-    type: String,
-    enum: ['draft', 'submitted', 'pending_review', 'approved', 'rejected', 'archived'], // Added review/approved/rejected
-    default: 'submitted'
-}
+status: { // <<<--- KEEP THIS ONE ---<<<
+  type: String,
+  enum: ['draft', 'submitted', 'pending_review', 'approved', 'rejected', 'archived'],
+  default: 'submitted' // Or maybe 'pending_review' if submitted needs explicit review
+},
 }, {
   timestamps: true // Adds createdAt and updatedAt automatically
 });
@@ -96,5 +96,6 @@ status: {
 reportSchema.index({ project: 1, generatedAt: -1 }); // Quickly find reports for a project, newest first
 reportSchema.index({ generatedBy: 1 });
 reportSchema.index({ type: 1 });
+reportSchema.index({ status: 1 });
 
 module.exports = mongoose.model('Report', reportSchema);
