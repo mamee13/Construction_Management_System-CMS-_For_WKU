@@ -16,6 +16,7 @@ const reportRoutes = require('./routes/reportRoutes');
 const notificationRouter = require('./routes/notificationRoutes'); // Import the new router
 // const adminAnalyticsRouter = require('./routes/adminAnalyticsRoutes'); // Adjust path
 const adminAnalyticsRouter = require('./routes/adminAnalyticsRoutes')
+const chatRouter = require('./routes/chatRoutes'); // Adjust path if needed
 // CORS middleware - MUST come BEFORE routes
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:5173', // Your frontend URL
@@ -48,7 +49,8 @@ app.use('/api/users', userRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/notifications', notificationRouter); // Mount the notification router
 app.use('/api/admin-analytics/overview', adminAnalyticsRouter); // Mount the admin analytics router
-
+// --- MOUNT CHAT ROUTER ---
+app.use('/api/chats', chatRouter);
 // 404 handler
 app.all('*', (req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));

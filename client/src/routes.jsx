@@ -34,6 +34,7 @@ import TasksList from "./pages/admin/tasks/TasksList"
 import CreateTask from "./pages/admin/tasks/CreateTask"
 import TaskDetail from "./pages/admin/tasks/TaskDetail"
 import EditTask from "./pages/admin/tasks/EditTask"
+import CreateReportForAdmin from "./pages/Admin/reports/CreateReport"
 
 // Admin Material Management Pages
 // import MaterialsList from "./pages/admin/materials/MaterialsList"
@@ -74,6 +75,12 @@ import CreateReportForContractor from "./pages/Contractor/reports/CreateReport"
 import ReportDetailForContractor from "./pages/Contractor/reports/ReportDetail"
 import Analytics from "./pages/Admin/Analytics"
 // Protected route component
+import ChatPage from "./pages/Chat/ChatPage"
+import ProjectsListForProjectManager from "./pages/ProjectManager/ProjectsList"
+import ProjectManagerProjectDetail from "./pages/ProjectManager/ProjectDetail"
+import ReportDetailForProjectManager from "./pages/ProjectManager/ReportDetail"
+import ReportListForProjectManager from "./pages/ProjectManager/ReportList"
+import CreateReportForProjectManager from "./pages/ProjectManager/CreateReport"
 const ProtectedRoute = ({ children, requiredRole }) => {
   const isAuthenticated = authAPI.isAuthenticated()
   const hasRequiredRole = requiredRole ? authAPI.hasRole(requiredRole) : true
@@ -110,6 +117,7 @@ function App() {
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="profile" element={<Profile />} />
+          <Route path="chat" element={<ChatPage />} />
           {/* Add more user routes as needed */}
           {/*consultant route is this  */}
           <Route
@@ -277,7 +285,7 @@ function App() {
             />
            
            <Route
-           path="contractor-projects" // Renders at /materials
+           path="contractor-projects" 
            element={
             <ProtectedRoute requiredRole="contractor">
               <ProjectsListForContractor />
@@ -286,7 +294,7 @@ function App() {
             }
             />
             <Route
-           path="contractor-projects/:id" // Renders at /materials
+           path="contractor-projects/:id" 
            element={
             <ProtectedRoute requiredRole="contractor">
               <ProjectDetailForContractor />
@@ -295,7 +303,7 @@ function App() {
             }
             />
             <Route
-            path="contractor-reports" // Renders at /materials
+            path="contractor-reports" 
             element={
             <ProtectedRoute requiredRole="contractor">
               <ReportsListForContractor />
@@ -304,7 +312,7 @@ function App() {
             }
             />
             <Route
-            path="contractor-reports/create" // Renders at /materials
+            path="contractor-reports/create" 
             element={
             <ProtectedRoute requiredRole="contractor">
               <CreateReportForContractor />
@@ -313,7 +321,7 @@ function App() {
             }
             />
             <Route
-            path="contractor-reports/:id" // Renders at /materials
+            path="contractor-reports/:id" 
             element={
             <ProtectedRoute requiredRole="contractor">
               <ReportDetailForContractor />
@@ -324,7 +332,59 @@ function App() {
             
 
         
-           {/*the end of the consultant routes */}
+           {/*the end of the contractor routes */}
+              
+              {/* the project manager routes */}
+              <Route
+            path="projectmanager-projects" 
+            element={
+            <ProtectedRoute requiredRole="project_manager">
+              <ProjectsListForProjectManager/>
+            </ProtectedRoute>
+
+            }
+            />
+
+          <Route
+            path="projectmanager-projects/:id" 
+            element={
+            <ProtectedRoute requiredRole="project_manager">
+              <ProjectManagerProjectDetail/>
+            </ProtectedRoute>
+
+            }
+            />
+            <Route
+            path="projectmanager-reports" 
+            element={
+            <ProtectedRoute requiredRole="project_manager">
+              <ReportListForProjectManager/>
+            </ProtectedRoute>
+
+            }
+            />
+
+
+            <Route
+            path="projectmanager-reports/:id" 
+            element={
+            <ProtectedRoute requiredRole="project_manager">
+             <ReportDetailForProjectManager/>
+            </ProtectedRoute>
+
+            }
+            />
+
+          <Route
+            path="projectmanager-reports/create" 
+            element={
+            <ProtectedRoute requiredRole="project_manager">
+              <CreateReportForProjectManager/>
+            </ProtectedRoute>
+
+            }
+            />
+
            
         </Route>
        
@@ -373,6 +433,7 @@ function App() {
             {/* Add more Report routes as needed */}
            <Route path="reports" element={<ReportList />} />
            <Route path="reports/:id" element={<ReportDetailAdmin />} />
+           <Route path="reports/create" element={<CreateReportForAdmin />} />
            <Route path="analytics" element={<Analytics />} />
           {/* Add more admin routes as needed */}
         </Route>
