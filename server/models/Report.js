@@ -20,7 +20,15 @@ const reportSchema = new mongoose.Schema({
         'schedule_adherence',// Report focused on schedule
         'issue_summary',    // Summary of problems/blockers
         'financial',        // Cost/budget related (if budget tracking is detailed)
-        'custom'            // For other types
+        'custom' ,           // For other types
+        'committee_summary',
+        'milestone_update',
+        'financial_overview', // Committee-specific financial type
+        'risk_assessment',
+        'strategic_alignment',
+        'custom_committee' // Committee-specific custom type
+
+
     ],
     default: 'progress'
   },

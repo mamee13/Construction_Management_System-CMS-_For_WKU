@@ -3,6 +3,7 @@
 // src/controllers/userController.js
 
 const User = require('../models/User');
+const Project = require('../models/Project'); // Assuming you have a Project model
 const catchAsync = require('../utils/CatchAsync');
 const jwt = require('jsonwebtoken');
 
@@ -58,19 +59,64 @@ exports.getUsers = catchAsync(async (req, res, next) => {
 // @desc    Get a single user by ID
 // @route   GET /api/users/:id
 // @access  Private (Needs auth, specific role check might be needed depending on use case)
+// exports.getUser = catchAsync(async (req, res, next) => {
+//   // Add auth check if needed, e.g., ensure user is logged in.
+//   // Potentially restrict further based on role if necessary.
+//   const user = await User.findById(req.params.id).select('-password');
+//   if (!user) {
+//     return res.status(404).json({
+//       success: false,
+//       message: 'User not found.'
+//     });
+//   }
+//   res.status(200).json({
+//     success: true,
+//     data: user // Structure is likely { success: true, data: { ...user data... } }
+//   });
+// });
+
 exports.getUser = catchAsync(async (req, res, next) => {
-  // Add auth check if needed, e.g., ensure user is logged in.
-  // Potentially restrict further based on role if necessary.
-  const user = await User.findById(req.params.id).select('-password');
+  // Optional: Add auth check here if not handled by middleware route protection
+  // For example, ensure req.user exists if only logged-in users can view profiles.
+
+  const userId = req.params.id; // Get the ID of the user being requested
+
+  // --- 2. FIND THE USER'S DETAILS ---
+  const user = await User.findById(userId).select('-password'); // Exclude password
+
   if (!user) {
-    return res.status(404).json({
-      success: false,
-      message: 'User not found.'
-    });
+      return res.status(404).json({
+          success: false,
+          message: 'User not found.'
+      });
   }
+
+  // --- 3. FIND PROJECTS ASSIGNED TO THIS USER ---
+  const assignedProjects = await Project.find({
+      $or: [
+          { contractor: userId },
+          { consultant: userId },
+          { projectManager: userId }
+          // Add other roles here if applicable (e.g., committee members)
+          // { committeeMembers: userId }
+      ]
+  })
+  // Select only the necessary fields for display in the user detail modal
+  .select('_id projectName status startDate') // Adjust fields as needed
+  .sort({ createdAt: -1 }) // Optional sorting
+  .lean(); // Use .lean() for performance - returns plain JS objects
+
+  // --- 4. COMBINE RESULTS AND SEND RESPONSE ---
   res.status(200).json({
-    success: true,
-    data: user // Structure is likely { success: true, data: { ...user data... } }
+      success: true,
+      // Send data in a structure that includes both user and projects
+      data: {
+          user: user.toObject(), // Convert Mongoose doc to plain object
+          assignedProjects: assignedProjects // The array of projects found
+      }
+      // Alternative structure if you prefer adding projects directly to user obj:
+      // data: { ...user.toObject(), assignedProjects: assignedProjects }
+      // Choose the structure easiest for your frontend to consume
   });
 });
 

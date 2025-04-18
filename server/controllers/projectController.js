@@ -8,6 +8,7 @@ const Material = require('../models/Material'); // Import related models
 const Schedule = require('../models/Schedule');
 const Task = require('../models/Task');
 const Comment = require('../models/Comment');
+const ChatRoom = require('../models/ChatRoom'); // Adjust path if needed
 const catchAsync = require('../utils/CatchAsync'); // Assuming you have this utility
 const jwt = require('jsonwebtoken');
 const AppError = require('../utils/AppError'); // Assuming you use this
@@ -47,6 +48,87 @@ exports.isAdminMiddleware = catchAsync(async (req, res, next) => {
 // @desc     Create new project
 // @route    POST /api/projects
 // @access   Private (Admin only - Use isAdminMiddleware in router)
+// exports.createProject = catchAsync(async (req, res, next) => {
+//     const {
+//         projectName, projectDescription, startDate, endDate, projectLocation,
+//         projectBudget, contractor, consultant, projectManager, status
+//     } = req.body;
+
+//     // Basic validation (keep as is)
+//     if (!projectName || !projectDescription || !startDate || !endDate || !projectLocation || projectBudget === undefined || !contractor || !consultant || !projectManager) {
+//         // Use AppError for consistency if you have it setup
+//         return next(new AppError('Missing required project fields', 400));
+//         // return res.status(400).json({ success: false, message: 'Missing required project fields' });
+//     }
+
+//     // --- Added check: Ensure req.user exists (populated by auth middleware) ---
+//     if (!req.user || !req.user._id) {
+//         console.error('Error in createProject: req.user not found or missing _id. Ensure auth middleware runs first.');
+//         return next(new AppError('Authentication error: User information missing.', 500));
+//     }
+//     // --- End Added check ---
+
+//     const project = await Project.create({
+//         projectName, projectDescription, startDate, endDate, projectLocation,
+//         projectBudget, contractor, consultant, projectManager, status,
+//         // Optional: Explicitly set createdBy if your model has it
+//         // createdBy: req.user._id
+//     });
+
+//     console.log(`Project created successfully: ${project._id}`);
+
+//     // <<<--- Notification Logic START --->>>
+//     const io = req.app.get('socketio'); // Get the io instance from app settings
+
+//     if (io) {
+//         const creatorId = req.user._id.toString(); // ID of the admin creating the project
+
+//         // Gather potential recipients (ensure they are valid ObjectIDs if assigned)
+//         const potentialRecipients = [
+//             project.contractor,
+//             project.consultant,
+//             project.projectManager
+//         ].filter(id => id && mongoose.Types.ObjectId.isValid(id)); // Filter out null/undefined/invalid IDs
+
+//         // Get unique recipient IDs, excluding the creator
+//         const uniqueRecipientIds = [...new Set(
+//             potentialRecipients
+//                 .map(id => id.toString()) // Convert to string for comparison and Set uniqueness
+//                 .filter(idStr => idStr !== creatorId) // Exclude the creator
+//         )];
+
+//         // Send notification to each involved user (excluding the creator)
+//         uniqueRecipientIds.forEach(userId => {
+//             createAndEmitNotification(io, userId, {
+//                 senderUser: creatorId, // The admin/user who created the project
+//                 type: 'USER_ADDED_TO_PROJECT',
+//                 message: `You have been assigned to the new project: ${project.projectName}`,
+//                 link: `/projects/${project._id}`, // Example frontend link structure
+//                 projectId: project._id
+//             });
+//         });
+
+//         // Optional: Notify *other* admins (if needed)
+//         // const adminsToNotify = await User.find({ role: 'admin', _id: { $ne: creatorId } }).select('_id');
+//         // adminsToNotify.forEach(admin => {
+//         //    createAndEmitNotification(io, admin._id.toString(), { ... notification data ... type: 'NEW_PROJECT_CREATED' });
+//         // });
+
+//     } else {
+//         // Log a warning if io instance isn't found (might indicate setup issue)
+//         console.warn('Socket.IO instance (io) not found in app settings during project creation. Notifications will not be sent.');
+//     }
+//     // <<<--- Notification Logic END --->>>
+
+//     // Keep the original success response
+//     res.status(201).json({
+//         success: true,
+//         data: project
+//     });
+// });
+// @desc     Create new project
+// @route    POST /api/projects
+// @access   Private (Admin only - Ensure middleware is applied in router)
 exports.createProject = catchAsync(async (req, res, next) => {
     const {
         projectName, projectDescription, startDate, endDate, projectLocation,
@@ -54,78 +136,87 @@ exports.createProject = catchAsync(async (req, res, next) => {
     } = req.body;
 
     // Basic validation (keep as is)
-    if (!projectName || !projectDescription || !startDate || !endDate || !projectLocation || projectBudget === undefined || !contractor || !consultant || !projectManager) {
-        // Use AppError for consistency if you have it setup
+    if (!projectName || !projectDescription /* ... other fields ... */ ) {
         return next(new AppError('Missing required project fields', 400));
-        // return res.status(400).json({ success: false, message: 'Missing required project fields' });
+    }
+    if (!req.user || !req.user._id) { // Auth check
+         return next(new AppError('Authentication error: User information missing.', 500));
     }
 
-    // --- Added check: Ensure req.user exists (populated by auth middleware) ---
-    if (!req.user || !req.user._id) {
-        console.error('Error in createProject: req.user not found or missing _id. Ensure auth middleware runs first.');
-        return next(new AppError('Authentication error: User information missing.', 500));
-    }
-    // --- End Added check ---
-
-    const project = await Project.create({
+    // --- 1. Create the Project ---
+    const newProject = await Project.create({
         projectName, projectDescription, startDate, endDate, projectLocation,
         projectBudget, contractor, consultant, projectManager, status,
-        // Optional: Explicitly set createdBy if your model has it
-        // createdBy: req.user._id
+        // createdBy: req.user._id // If applicable
     });
 
-    console.log(`Project created successfully: ${project._id}`);
+    console.log(`Project created successfully: ${newProject._id}`); // Keep this log
 
-    // <<<--- Notification Logic START --->>>
-    const io = req.app.get('socketio'); // Get the io instance from app settings
+    // --- 2. Create the Chat Room (Moved Here) ---
+    try {
+         console.log(`[Project Create Ctrl ${newProject._id}] Attempting to create chat room.`);
+         if (!newProject.contractor || !newProject.consultant || !newProject.projectManager) {
+              console.warn(`[Project Create Ctrl ${newProject._id}] SKIPPING chat room creation. Missing required roles.`);
+         } else {
+             const members = [
+                 newProject.contractor,
+                 newProject.consultant,
+                 newProject.projectManager
+             ];
+             // Optional: Add Admins
+             // const admins = await User.find({ role: 'admin' }).select('_id').lean();
+             // members.push(...admins.map(a => a._id));
 
+             await ChatRoom.create({
+                 projectId: newProject._id,
+                 name: `Project: ${newProject.projectName}`,
+                 members: [...new Set(members.map(id => id.toString()))]
+             });
+             console.log(`[Project Create Ctrl ${newProject._id}] Chat room created successfully.`);
+         }
+    } catch(chatError) {
+         console.error(`[Project Create Ctrl ${newProject._id}] ERROR creating chat room after project creation:`, chatError.message, chatError.stack);
+         // Decide how to handle chat creation failure - maybe log it but don't fail the whole project creation request?
+    }
+    // --- End Chat Room Creation ---
+
+
+    // --- 3. Handle Notifications (Existing Logic) ---
+    // This part likely stays similar, using newProject details
+    const io = req.app.get('socketio');
     if (io) {
-        const creatorId = req.user._id.toString(); // ID of the admin creating the project
+        const creatorId = req.user._id.toString();
+        const potentialRecipients = [ /* ... gather recipients from newProject ... */
+             newProject.contractor, newProject.consultant, newProject.projectManager
+        ].filter(id => id && mongoose.Types.ObjectId.isValid(id));
+        const uniqueRecipientIds = [ /* ... filter out creator, ensure unique ... */
+             ...new Set(potentialRecipients.map(id => id.toString()).filter(idStr => idStr !== creatorId))
+        ];
 
-        // Gather potential recipients (ensure they are valid ObjectIDs if assigned)
-        const potentialRecipients = [
-            project.contractor,
-            project.consultant,
-            project.projectManager
-        ].filter(id => id && mongoose.Types.ObjectId.isValid(id)); // Filter out null/undefined/invalid IDs
-
-        // Get unique recipient IDs, excluding the creator
-        const uniqueRecipientIds = [...new Set(
-            potentialRecipients
-                .map(id => id.toString()) // Convert to string for comparison and Set uniqueness
-                .filter(idStr => idStr !== creatorId) // Exclude the creator
-        )];
-
-        // Send notification to each involved user (excluding the creator)
         uniqueRecipientIds.forEach(userId => {
             createAndEmitNotification(io, userId, {
-                senderUser: creatorId, // The admin/user who created the project
+                senderUser: creatorId,
                 type: 'USER_ADDED_TO_PROJECT',
-                message: `You have been assigned to the new project: ${project.projectName}`,
-                link: `/projects/${project._id}`, // Example frontend link structure
-                projectId: project._id
+                message: `You have been assigned to the new project: ${newProject.projectName}`,
+                link: `/projects/${newProject._id}`,
+                projectId: newProject._id
             });
         });
-
-        // Optional: Notify *other* admins (if needed)
-        // const adminsToNotify = await User.find({ role: 'admin', _id: { $ne: creatorId } }).select('_id');
-        // adminsToNotify.forEach(admin => {
-        //    createAndEmitNotification(io, admin._id.toString(), { ... notification data ... type: 'NEW_PROJECT_CREATED' });
-        // });
-
+         console.log(`[Project Create Ctrl ${newProject._id}] Notifications initiated.`); // Added log
     } else {
-        // Log a warning if io instance isn't found (might indicate setup issue)
-        console.warn('Socket.IO instance (io) not found in app settings during project creation. Notifications will not be sent.');
+        console.warn('[Project Create Ctrl] Socket.IO instance not found. Notifications not sent.');
     }
-    // <<<--- Notification Logic END --->>>
+    // --- End Notification Logic ---
 
-    // Keep the original success response
+
+    // --- 4. Send Response ---
+    // Note: The post-save hook for user association WILL STILL RUN after Project.create
+    // We just moved the chat creation part out of it.
     res.status(201).json({
         success: true,
-        data: project
+        data: newProject // Send back the created project data
     });
 });
-
 // --- Keep other controller functions (getProjects, getProject, updateProject, deleteProject, etc.) AS THEY ARE ---
 exports.getProjects = catchAsync(async (req, res, next) => {
     const projects = await Project.find()

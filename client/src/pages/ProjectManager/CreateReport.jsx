@@ -1,6 +1,5 @@
 
 
-
 /* eslint-disable */ // Consider addressing ESLint warnings instead of disabling
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -17,9 +16,9 @@ import {
   PlusIcon,
   InformationCircleIcon, // Added for hints
 } from "@heroicons/react/24/outline";
-import authAPI from "../../../api/auth"; // Assuming correct path
-import reportsAPI from "../../../api/reports"; // Assuming correct path
-import projectsAPI from "../../../api/projects"; // Assuming correct path
+import authAPI from "@/api/auth";
+import reportsAPI from "@/api/reports";
+import projectsAPI from "@/api/projects";
 
 // --- Constants ---
 const REPORT_TYPES = [
@@ -42,7 +41,7 @@ const TYPES_REQUIRING_DATES = [
 ];
 const MILLISECONDS_PER_DAY = 1000 * 60 * 60 * 24;
 // Define disallowed statuses (case-insensitive comparison recommended)
-const DISALLOWED_PROJECT_STATUSES = ['on_hold', 'cancelled']; // ADDED
+const DISALLOWED_PROJECT_STATUSES = ['on_hold', 'cancelled'];
 
 // --- Helper Function for Date Formatting ---
 const formatDateForDisplay = (date) => {
@@ -60,20 +59,20 @@ const formatDateForDisplay = (date) => {
 
 
 // --- Enhanced Validation Schema ---
-// The validation schema remains the same as it uses the filtered 'availableProjects'
 const getValidationSchema = (availableProjects) => {
+  // The rest of the validation schema remains the same...
   return Yup.object({
     title: Yup.string()
       .required("Title is required")
       .max(150, "Title cannot exceed 150 characters"),
     project: Yup.string()
-      .required("Project selection is required"), // Validation will pass if project is selected from the filtered list
+      .required("Project selection is required"),
     type: Yup.string()
       .required("Report type is required")
       .oneOf(REPORT_TYPES.map(rt => rt.value), "Invalid report type"),
     summary: Yup.string()
       .required("Report summary is required")
-      .min(10, "Summary should be at least 10 characters"),
+      .min(10, "Summary should be at least 10 characters"), // Example minimum length
     periodStartDate: Yup.date().when("type", {
       is: (type) => TYPES_REQUIRING_DATES.includes(type),
       then: (schema) =>
@@ -82,27 +81,30 @@ const getValidationSchema = (availableProjects) => {
           .nullable()
           .test(
             "project-timeframe-start",
-            "Start date out of project range",
+            "Start date out of project range", // Default message
             function (value) {
               const { project: selectedProjectId } = this.parent;
+              // Don't validate if date or project aren't set yet
               if (!value || !selectedProjectId) return true;
-              // availableProjects is already filtered, so we just need to find the selected one
               const selectedProject = availableProjects.find(p => p._id === selectedProjectId);
-              if (!selectedProject?.startDate || !selectedProject?.endDate) return true; // Should not happen if project selected
+              // Don't validate if project doesn't have valid dates
+              if (!selectedProject?.startDate || !selectedProject?.endDate) return true;
 
+              // Compare dates (set time to 00:00:00 to compare dates only)
               const startDate = new Date(value); startDate.setHours(0,0,0,0);
               const projStart = new Date(selectedProject.startDate); projStart.setHours(0,0,0,0);
               const projEnd = new Date(selectedProject.endDate); projEnd.setHours(0,0,0,0);
 
               if (startDate < projStart || startDate > projEnd) {
+                // Provide a more specific error message
                 return this.createError({
                   message: `Start date must be between ${formatDateForDisplay(projStart)} and ${formatDateForDisplay(projEnd)}`,
                 });
               }
-              return true;
+              return true; // Validation passes
             }
           ),
-      otherwise: (schema) => schema.optional().nullable(),
+      otherwise: (schema) => schema.optional().nullable(), // Not required for other types
     }),
     periodEndDate: Yup.date().when("type", {
       is: (type) => TYPES_REQUIRING_DATES.includes(type),
@@ -113,30 +115,31 @@ const getValidationSchema = (availableProjects) => {
           .min(Yup.ref("periodStartDate"), "End date must be on or after start date")
           .test(
             "project-timeframe-and-span",
-            "End date/span validation failed",
+            "End date/span validation failed", // Default message
             function (value) {
               const { project: selectedProjectId, periodStartDate: startDateValue, type: reportType } = this.parent;
+              // Don't validate if dates or project aren't set yet
               if (!value || !startDateValue || !selectedProjectId) return true;
               const selectedProject = availableProjects.find(p => p._id === selectedProjectId);
-               if (!selectedProject?.startDate || !selectedProject?.endDate) return true; // Should not happen if project selected
+              // Don't validate if project doesn't have valid dates
+              if (!selectedProject?.startDate || !selectedProject?.endDate) return true;
 
+              // Compare dates (set time to 00:00:00 to compare dates only)
               const endDate = new Date(value); endDate.setHours(0,0,0,0);
               const startDate = new Date(startDateValue); startDate.setHours(0,0,0,0);
               const projStart = new Date(selectedProject.startDate); projStart.setHours(0,0,0,0);
               const projEnd = new Date(selectedProject.endDate); projEnd.setHours(0,0,0,0);
 
+              // Check if End Date is within project bounds
               if (endDate < projStart || endDate > projEnd) {
                 return this.createError({
                   message: `End date must be between ${formatDateForDisplay(projStart)} and ${formatDateForDisplay(projEnd)}`,
                 });
               }
 
-              const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
-               // Calculate difference in days. Add 1 unless start and end are the same day.
-              const diffDays = startDate.getTime() === endDate.getTime()
-                               ? 1
-                               : Math.ceil(diffTime / MILLISECONDS_PER_DAY) + 1;
-
+              // Check date span for specific report types
+              const diffTime = Math.abs(endDate.getTime() - startDate.getTime()); // Use getTime() for accuracy
+              const diffDays = Math.ceil(diffTime / MILLISECONDS_PER_DAY) + (endDate.getTime() === startDate.getTime() ? 0 : 1); // Add 1 day unless start/end are same
 
               if (reportType === 'monthly_progress' && (diffDays < 20 || diffDays > 40)) {
                 return this.createError({
@@ -148,17 +151,19 @@ const getValidationSchema = (availableProjects) => {
                   message: `Weekly reports should span 5-10 days (${diffDays} days selected)`,
                 });
               }
-              return true;
+
+              return true; // Validation passes
             }
           ),
-      otherwise: (schema) => schema.optional().nullable(),
+      otherwise: (schema) => schema.optional().nullable(), // Not required for other types
     }),
-    newIssue: Yup.string(),
+    newIssue: Yup.string(), // Issue description can be empty if not adding
     newSeverity: Yup.string().when("newIssue", {
-      is: (val) => val && val.trim().length > 0,
+      is: (val) => val && val.trim().length > 0, // is: checks if newIssue has content
       then: (schema) => schema.required("Severity is required when adding an issue").oneOf(["low", "medium", "high"]),
-      otherwise: (schema) => schema.notRequired(),
+      otherwise: (schema) => schema.notRequired(), // Not required if newIssue is empty
     }),
+    // No validation needed for issuesAndRisks array itself or attachments here
   });
 };
 
@@ -166,22 +171,26 @@ const initialValues = {
   title: "",
   summary: "",
   project: "",
-  type: "progress",
+  type: "progress", // Default type
   periodStartDate: "",
   periodEndDate: "",
   issuesAndRisks: [],
+  // attachments are handled by selectedFiles state, not Formik initial values
   newIssue: "",
-  newSeverity: "medium",
+  newSeverity: "medium", // Default severity
 };
 
-const CreateReport = () => {
+
+const CreateReportForProjectManager = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  // Removed isSubmitting state, Formik's isSubmitting should be used
+  const [isConsultantRole, setIsConsultantRole] = useState(false); // Renamed for clarity
   const [selectedFiles, setSelectedFiles] = useState([]);
   const currentUser = authAPI.getCurrentUser();
   const [selectedProjectDates, setSelectedProjectDates] = useState({ start: null, end: null });
 
-  // --- Authorization Check (remains the same) ---
+  // --- Authorization Check ---
   useEffect(() => {
     const checkUserRole = () => {
       if (!authAPI.isAuthenticated()) {
@@ -190,17 +199,24 @@ const CreateReport = () => {
         return;
       }
       const userRole = currentUser?.role;
-      if (userRole !== "consultant") {
-        toast.warn("Access denied. Only consultants can create reports.");
-        navigate("/dashboard", { replace: true });
+      const isAllowed = userRole === "consultant" || userRole === "project_manager";
+      setIsConsultantRole(userRole === "consultant"); // Set specific role state if needed elsewhere
+
+      if (!isAllowed) {
+        toast.warn("Access denied. Only consultants and project managers can create reports.");
+        navigate("/dashboard", { replace: true }); // Redirect to a general dashboard
       }
     };
-    if (currentUser !== undefined) {
+
+    // Only run check if currentUser is potentially loaded
+    if (currentUser !== undefined) { // Check if authAPI has resolved
       checkUserRole();
     }
+    // Add dependency on currentUser state potentially changing
   }, [currentUser, navigate]);
 
-  // --- Fetch Assigned Projects for Consultant (with status filtering) ---
+
+  // --- Fetch Assigned Projects ---
   const {
     data: projectsData, // Raw selected data after select function runs
     isLoading: isLoadingProjects,
@@ -208,16 +224,17 @@ const CreateReport = () => {
     error: projectsError,
   } = useQuery({
     // Updated query key to reflect status filtering
-    queryKey: ["consultant-assigned-active-projects-with-dates", currentUser?._id],
-    queryFn: () => projectsAPI.getProjectsByConsultant(currentUser?._id),
-    enabled: !!currentUser?._id && currentUser?.role === "consultant",
-    staleTime: 10 * 60 * 1000,
+    queryKey: ["user-assigned-active-projects-with-dates", currentUser?._id],
+    queryFn: () => projectsAPI.getMyAssignedProjects(),
+    enabled: !!currentUser?._id && (currentUser?.role === "consultant" || currentUser?.role === "project_manager"),
+    staleTime: 10 * 60 * 1000, // Cache for 10 minutes
     select: (data) => {
       // Process projects: map dates and filter by date validity AND project status
       const validProjectsForReporting =
         data?.data?.projects
           ?.map((p) => ({
             ...p,
+            // Ensure dates are parsed correctly, handle potential invalid dates from API
             startDate: p.startDate ? new Date(p.startDate) : null,
             endDate: p.endDate ? new Date(p.endDate) : null,
             // Ensure status is carried over (assuming it exists on the project object 'p')
@@ -241,26 +258,33 @@ const CreateReport = () => {
   // 'availableProjects' now contains only projects with valid dates and allowed statuses
   const availableProjects = projectsData || [];
 
-  // --- File Handling (remains the same) ---
+  // --- File Handling ---
   const handleFileChange = (event) => {
     const files = Array.from(event.target.files);
     if (selectedFiles.length + files.length > 5) {
       toast.error("You can upload a maximum of 5 files.");
       return;
     }
+    // Add size validation per file (e.g., 10MB)
     const oversizedFiles = files.filter(file => file.size > 10 * 1024 * 1024);
     if (oversizedFiles.length > 0) {
         toast.error(`File(s) exceed 10MB limit: ${oversizedFiles.map(f => f.name).join(', ')}`);
-        return;
+        // Optionally filter out oversized files instead of rejecting all
+        // files = files.filter(file => file.size <= 10 * 1024 * 1024);
+        // if (files.length === 0) return; // Stop if no valid files remain
+        return; // Stop if any file is oversized
     }
+
+    // Check for duplicates before adding
     const newFiles = files.filter(
       (file) => !selectedFiles.some((sf) => sf.name === file.name && sf.size === file.size)
     );
     if (newFiles.length !== files.length) {
         toast.info("Duplicate files were ignored.");
     }
+
     setSelectedFiles((prevFiles) => [...prevFiles, ...newFiles]);
-    event.target.value = null;
+    event.target.value = null; // Reset file input
   };
 
   const handleRemoveFile = (index) => {
@@ -271,74 +295,88 @@ const CreateReport = () => {
   // Pass the already filtered projects to the validation schema factory
   const validationSchema = getValidationSchema(availableProjects);
 
-  // --- Create Report Mutation (update invalidated query key) ---
+  // --- Create Report Mutation ---
   const createReportMutation = useMutation({
-    mutationFn: (reportData) => reportsAPI.createReport(reportData),
+    mutationFn: (reportData) => reportsAPI.createReport(reportData), // API function handles FormData creation
     onSuccess: (data) => {
       toast.success(`Report "${data?.data?.title || "New Report"}" created successfully`);
-      queryClient.invalidateQueries({ queryKey: ["reports"] });
-      queryClient.invalidateQueries({ queryKey: ["consultant-reports"] });
-      // Invalidate the filtered project query
-      queryClient.invalidateQueries({ queryKey: ["consultant-assigned-active-projects-with-dates", currentUser?._id]}); // UPDATED
-      navigate("/reports");
+      // Invalidate queries to refetch report lists
+      queryClient.invalidateQueries({ queryKey: ["reports"] }); // General reports list
+      queryClient.invalidateQueries({ queryKey: ["consultant-reports"] }); // Specific list if used
+      queryClient.invalidateQueries({ queryKey: ["project-manager-reports"] }); // Another specific list if used
+      // Also invalidate the project query in case statuses changed elsewhere
+      queryClient.invalidateQueries({ queryKey: ["user-assigned-active-projects-with-dates", currentUser?._id] });
+      navigate("/project-manager/reports"); // Navigate to the reports list for PM
     },
     onError: (error) => {
       console.error("Report creation error:", error);
+      // Try to get a specific error message from the API response
       const message = error?.response?.data?.message || error?.message || "Failed to create report. Please check details and try again.";
       toast.error(message);
+      // No need to manually set isSubmitting to false here, Formik handles it via onSettled
     },
   });
 
-  // --- Form Submission Handler (remains the same) ---
+  // --- Form Submission Handler ---
   const handleSubmit = async (values, { setSubmitting }) => {
+    // Construct the data payload
     const reportDataToSend = {
       title: values.title.trim(),
       project: values.project,
       type: values.type,
       summary: values.summary.trim(),
-      issuesAndRisks: JSON.stringify(values.issuesAndRisks),
-      attachments: selectedFiles,
+      issuesAndRisks: JSON.stringify(values.issuesAndRisks), // Stringify the array
+      attachments: selectedFiles, // Pass the array of File objects
     };
 
+    // Add dates only if required by the type and if they are valid
     if (TYPES_REQUIRING_DATES.includes(values.type)) {
+        // Send dates in ISO format for backend consistency
         if (values.periodStartDate) {
-            try { reportDataToSend.periodStartDate = new Date(values.periodStartDate).toISOString(); }
-            catch (e) { console.error("Error converting start date:", e) }
+            try {
+                reportDataToSend.periodStartDate = new Date(values.periodStartDate).toISOString();
+            } catch (e) { /* Handle potential invalid date if validation somehow missed it */ }
         }
          if (values.periodEndDate) {
-            try { reportDataToSend.periodEndDate = new Date(values.periodEndDate).toISOString(); }
-            catch (e) { console.error("Error converting end date:", e) }
+            try {
+                reportDataToSend.periodEndDate = new Date(values.periodEndDate).toISOString();
+            } catch (e) { /* Handle potential invalid date */ }
         }
     }
+    // No need to delete keys, backend should ignore them if not expected or null
 
-    console.log("Submitting Report Data:", reportDataToSend);
+    console.log("Submitting Report Data:", reportDataToSend); // Log before sending
+
+    // Mutate using the prepared data
     createReportMutation.mutate(reportDataToSend, {
+      // onSettled is called after onSuccess or onError
       onSettled: () => {
-        setSubmitting(false);
+        setSubmitting(false); // Signal Formik that submission process is complete
       },
     });
   };
 
-  // --- Issue Handling Logic (TYPO FIXED) ---
-   const handleAddIssue = (values, setFieldValue) => {
+  // --- Issue Handling Logic ---
+  const handleAddIssue = (values, setFieldValue) => {
     const description = values.newIssue.trim();
-    const severity = values.newSeverity;
+    const severity = values.newSeverity; // Already validated by Yup if description exists
 
     if (!description) {
       toast.info("Please enter an issue description.");
       return;
     }
+    // Severity validation is handled by Yup schema, check if it's already added
     const isDuplicate = values.issuesAndRisks.some((issue) => issue.description.toLowerCase() === description.toLowerCase());
     if (isDuplicate) {
       toast.warn("This issue seems to have already been added.");
       return;
     }
-    // Add the new issue - TYPO FIXED HERE
-    setFieldValue("issuesAndRisks", [...values.issuesAndRisks, { description, severity }]);
 
+    // Add the new issue
+    setFieldValue("issuesAndRisks", [...values.issuesAndRisks, { description, severity }]);
     // Reset the input fields
     setFieldValue("newIssue", "");
-    setFieldValue("newSeverity", "medium");
+    setFieldValue("newSeverity", "medium"); // Reset severity to default
   };
 
   const handleRemoveIssue = (index, values, setFieldValue) => {
@@ -346,64 +384,72 @@ const CreateReport = () => {
     setFieldValue("issuesAndRisks", updatedIssues);
   };
 
-  // --- Form Field Change Handlers (update handleProjectChange) ---
+  // --- Form Field Change Handlers ---
   const handleTypeChange = (e, setFieldValue, values) => {
     const newType = e.target.value;
     setFieldValue("type", newType);
+    // Reset dates if the new type doesn't require them
     const nowRequiresDates = TYPES_REQUIRING_DATES.includes(newType);
     if (!nowRequiresDates) {
+      // Only reset if they had values, to avoid unnecessary rerenders/validation triggers
       if (values.periodStartDate) setFieldValue("periodStartDate", "");
       if (values.periodEndDate) setFieldValue("periodEndDate", "");
     }
   };
 
    // Update selected project dates when project changes
-  const handleProjectChange = (e, setFieldValue, availableProjects, currentValues) => { // ADDED currentValues
+   const handleProjectChange = (e, setFieldValue, availableProjects, currentValues) => { // Pass currentValues
     const projectId = e.target.value;
-    setFieldValue("project", projectId);
+    setFieldValue("project", projectId); // Set the project ID in Formik state
 
+    // Find the selected project details to update UI hints
     const selectedProj = availableProjects.find((p) => p._id === projectId);
     if (selectedProj && selectedProj.startDate && selectedProj.endDate) {
       setSelectedProjectDates({ start: selectedProj.startDate, end: selectedProj.endDate });
+      // Optionally reset dates if project changes? Might be too disruptive.
+      // setFieldValue("periodStartDate", "");
+      // setFieldValue("periodEndDate", "");
     } else {
-      setSelectedProjectDates({ start: null, end: null });
+      setSelectedProjectDates({ start: null, end: null }); // Reset dates if project is invalid or cleared
     }
      // Manually trigger validation for date fields after project change
+     // Use a small timeout to allow Formik to update the project value first.
      setTimeout(() => {
-        // Use currentValues passed from render props
-        setFieldValue('periodStartDate', currentValues.periodStartDate, true); // ADDED validation trigger
-        setFieldValue('periodEndDate', currentValues.periodEndDate, true);   // ADDED validation trigger
+        // Pass the existing date values to trigger validation with the new project context
+        setFieldValue('periodStartDate', currentValues.periodStartDate, true); // third arg `true` triggers validation
+        setFieldValue('periodEndDate', currentValues.periodEndDate, true);
      }, 0);
   };
 
+
   // --- Render Logic ---
-  // Initial loading state
+  // Initial loading state before user role is determined
   if (currentUser === undefined) {
     return <div className="p-4 text-center">Loading user data...</div>;
   }
-  // If user is loaded but not allowed (already handled by useEffect)
-  if (!currentUser || currentUser.role !== "consultant") {
-    return <div className="p-4 text-center">Checking authorization...</div>;
+  // If user is loaded but not allowed (this check is redundant due to useEffect but safe)
+  if (!currentUser || (currentUser.role !== "consultant" && currentUser.role !== "project_manager")) {
+    return <div className="p-4 text-center text-red-600">Access Denied. Redirecting...</div>;
   }
 
-  // --- No Active/Valid Projects Message --- ADDED
+  // --- No Active/Valid Projects Message ---
   // Specific message if projects loaded but none are suitable for reporting
   const noSuitableProjects = !isLoadingProjects && !isProjectsError && availableProjects.length === 0 && projectsData !== undefined;
 
 
   return (
     <div className="py-10 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto">
-      {/* Header (remains the same) */}
+      {/* Header */}
       <div className="sm:flex sm:items-center sm:justify-between mb-8 pb-4 border-b border-gray-200">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 mb-1">Create New Report</h1>
           <p className="text-gray-500 text-sm">
-             Submit a new report for a project you're consulting on.
+             Submit a new report for an assigned project.
           </p>
         </div>
         <button
           type="button"
-          onClick={() => navigate("/reports")} // Consultant reports list
+          onClick={() => navigate("/project-manager/reports")}
           className="mt-4 sm:mt-0 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
         >
           <ArrowLeftIcon className="h-5 w-5 mr-2" />
@@ -430,12 +476,12 @@ const CreateReport = () => {
         </div>
       )}
       {/* Updated message for no suitable projects */}
-      {noSuitableProjects && ( // UPDATED condition
+      {noSuitableProjects && (
          <div
           className="bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded-md relative mb-6 shadow-sm"
           role="alert"
         >
-          <strong className="font-bold">No Projects Available for Reporting: </strong> {/* UPDATED message */}
+          <strong className="font-bold">No Projects Available for Reporting: </strong>
           <span className="block sm:inline">
             Cannot create reports. Ensure you are assigned to active projects with valid start/end dates that are not 'On Hold' or 'Cancelled'.
           </span>
@@ -443,18 +489,19 @@ const CreateReport = () => {
       )}
 
       {/* Form Section - Disable if loading or no suitable projects */}
-      <div className={`bg-white shadow rounded-lg overflow-hidden ${isLoadingProjects || noSuitableProjects ? 'opacity-50 pointer-events-none' : ''}`}> {/* UPDATED condition */}
+      <div className={`bg-white shadow rounded-lg overflow-hidden ${isLoadingProjects || noSuitableProjects ? 'opacity-50 pointer-events-none' : ''}`}>
         <Formik
           initialValues={initialValues}
           validationSchema={validationSchema}
           onSubmit={handleSubmit}
-          validateOnChange={true}
-          validateOnBlur={true}
+          validateOnChange={true} // Validate fields as they change
+          validateOnBlur={true}   // Validate fields when they lose focus
         >
+          {/* Use Formik's state for disabling etc. */}
           {({ errors, touched, values, setFieldValue, dirty, isValid, isSubmitting }) => (
             <Form>
                {/* Disable fieldset during submission or if no suitable projects */}
-               <fieldset disabled={isSubmitting || isLoadingProjects || noSuitableProjects} className="divide-y divide-gray-200"> {/* UPDATED condition */}
+               <fieldset disabled={isSubmitting || isLoadingProjects || noSuitableProjects} className="divide-y divide-gray-200">
                 {/* Section 1: Report Details */}
                 <div className="px-4 py-5 sm:p-6">
                    <legend className="text-lg font-medium text-gray-900 mb-4">Report Details</legend>
@@ -490,17 +537,16 @@ const CreateReport = () => {
                           name="project"
                           id="project"
                           // Pass current form values to the change handler
-                          onChange={(e) => handleProjectChange(e, setFieldValue, availableProjects, values)} // UPDATED to pass values
+                          onChange={(e) => handleProjectChange(e, setFieldValue, availableProjects, values)}
                           className={`block w-full shadow-sm sm:text-sm rounded-md py-2 pl-3 pr-10 ${
                             touched.project && errors.project
                               ? "border-red-500 ring-1 ring-red-500 focus:border-red-500 focus:ring-red-500"
                               : "border-gray-300 focus:ring-indigo-500 focus:border-indigo-500"
-                          } ${isLoadingProjects || noSuitableProjects ? "bg-gray-100 cursor-not-allowed" : ""}`} // UPDATED condition
+                          } ${isLoadingProjects || noSuitableProjects ? "bg-gray-100 cursor-not-allowed" : ""}`}
                            aria-invalid={touched.project && errors.project ? "true" : "false"}
                            aria-describedby={touched.project && errors.project ? "project-error" : "project-hint"}
                         >
                           <option value="">
-                            {/* UPDATED placeholder logic */}
                             {isLoadingProjects ? "Loading..." : noSuitableProjects ? "No Suitable Projects" : "-- Select Project --"}
                           </option>
                           {/* availableProjects is already filtered */}
@@ -545,7 +591,7 @@ const CreateReport = () => {
                         <ErrorMessage name="type" id="type-error" component="p" className="mt-1 text-sm text-red-600" />
                       </div>
 
-                      {/* Conditional Period Dates */}
+                      {/* Conditional Period Dates - Show only if type requires them */}
                       {TYPES_REQUIRING_DATES.includes(values.type) && (
                         <>
                           {/* Period Start Date */}
@@ -564,10 +610,10 @@ const CreateReport = () => {
                               }`}
                                aria-invalid={touched.periodStartDate && errors.periodStartDate ? "true" : "false"}
                                aria-describedby={touched.periodStartDate && errors.periodStartDate ? "periodStartDate-error" : "periodStartDate-hint"}
-                              // Set max date based on end date if selected OR project end date
-                              max={values.periodEndDate || (selectedProjectDates.end ? formatDateForDisplay(selectedProjectDates.end) : undefined)} // UPDATED min/max logic
+                              // Set max date based on end date if selected
+                              max={values.periodEndDate || (selectedProjectDates.end ? formatDateForDisplay(selectedProjectDates.end) : undefined)}
                               // Set min date based on project start date
-                              min={selectedProjectDates.start ? formatDateForDisplay(selectedProjectDates.start) : undefined} // UPDATED min/max logic
+                              min={selectedProjectDates.start ? formatDateForDisplay(selectedProjectDates.start) : undefined}
                             />
                             <ErrorMessage name="periodStartDate" id="periodStartDate-error" component="p" className="mt-1 text-sm text-red-600" />
                              {!errors.periodStartDate && selectedProjectDates.start && (
@@ -593,10 +639,10 @@ const CreateReport = () => {
                               }`}
                                aria-invalid={touched.periodEndDate && errors.periodEndDate ? "true" : "false"}
                                aria-describedby={touched.periodEndDate && errors.periodEndDate ? "periodEndDate-error" : "periodEndDate-hint"}
-                              // Set min date based on start date OR project start date
-                              min={values.periodStartDate || (selectedProjectDates.start ? formatDateForDisplay(selectedProjectDates.start) : undefined)} // UPDATED min/max logic
+                              // Set min date based on start date
+                              min={values.periodStartDate || (selectedProjectDates.start ? formatDateForDisplay(selectedProjectDates.start) : undefined)}
                               // Set max date based on project end date
-                              max={selectedProjectDates.end ? formatDateForDisplay(selectedProjectDates.end) : undefined} // UPDATED min/max logic
+                              max={selectedProjectDates.end ? formatDateForDisplay(selectedProjectDates.end) : undefined}
                             />
                             <ErrorMessage name="periodEndDate" id="periodEndDate-error" component="p" className="mt-1 text-sm text-red-600" />
                              {!errors.periodEndDate && selectedProjectDates.end && (
@@ -612,7 +658,7 @@ const CreateReport = () => {
                    </div>
                 </div>
 
-                {/* Section 2: Summary & Content (remains the same) */}
+                {/* Section 2: Summary & Content */}
                  <div className="px-4 py-5 sm:p-6">
                    <label htmlFor="summary" className="block text-lg font-medium text-gray-900 mb-2">
                      Summary / Details <span className="text-red-500">*</span>
@@ -637,7 +683,7 @@ const CreateReport = () => {
                    </p>
                  </div>
 
-                {/* Section 3: Issues and Risks (remains the same) */}
+                {/* Section 3: Issues and Risks */}
                 <div className="px-4 py-5 sm:p-6">
                    <h3 className="text-lg font-medium text-gray-900 mb-4">Issues and Risks</h3>
                    {/* Input fields for adding new issue */}
@@ -652,7 +698,7 @@ const CreateReport = () => {
                          id="newIssue"
                          placeholder="Describe an issue or potential risk..."
                          className={`block w-full shadow-sm sm:text-sm rounded-md ${
-                           touched.newIssue && errors.newIssue
+                           touched.newIssue && errors.newIssue // Should not error unless severity fails when text is present
                              ? "border-red-500 ring-1 ring-red-500 focus:border-red-500 focus:ring-red-500"
                              : "border-gray-300 focus:ring-indigo-500 focus:border-indigo-500"
                          }`}
@@ -668,7 +714,7 @@ const CreateReport = () => {
                          name="newSeverity"
                          id="newSeverity"
                          className={`block w-full shadow-sm sm:text-sm rounded-md py-2 pl-3 pr-10 ${
-                           touched.newSeverity && errors.newSeverity && values.newIssue
+                           touched.newSeverity && errors.newSeverity && values.newIssue // Error only if issue entered AND severity fails validation
                              ? "border-red-500 ring-1 ring-red-500 focus:border-red-500 focus:ring-red-500"
                              : "border-gray-300 focus:ring-indigo-500 focus:border-indigo-500"
                          }`}
@@ -684,12 +730,14 @@ const CreateReport = () => {
                          type="button"
                          onClick={() => handleAddIssue(values, setFieldValue)}
                          className="w-full sm:w-auto inline-flex justify-center items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed"
+                         // Disable if no text OR if there's a severity error (meaning text is present but severity is invalid)
                          disabled={!values.newIssue.trim() || !!errors.newSeverity}
                        >
                          <PlusIcon className="h-5 w-5 mr-1" /> Add
                        </button>
                      </div>
                    </div>
+                    {/* Error message specifically for severity when an issue is being added */}
                     <ErrorMessage name="newSeverity" id="newSeverity-error" component="p" className="text-sm text-red-600 mb-3" />
 
                    {/* List of added issues */}
@@ -735,31 +783,32 @@ const CreateReport = () => {
                    )}
                  </div>
 
-                {/* Section 4: Attachments (remains the same) */}
+                {/* Section 4: Attachments */}
                 <div className="px-4 py-5 sm:p-6">
                    <h3 className="text-lg font-medium text-gray-900 mb-4">Attachments</h3>
                    <div>
                      <label htmlFor="file-upload" className="block text-sm font-medium text-gray-700 sr-only">
                        Attach Files (Max 5 files, 10MB each)
                      </label>
+                     {/* File Dropzone */}
                      <div className={`mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed rounded-md transition-colors ${isSubmitting ? "bg-gray-100 cursor-not-allowed" : "border-gray-300 hover:border-indigo-400"}`}>
                        <div className="space-y-1 text-center">
                          <PaperClipIcon className="mx-auto h-10 w-10 text-gray-400" />
                          <div className="flex text-sm text-gray-600 justify-center">
                            <label
                              htmlFor="file-upload"
-                             className={`relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500 ${isSubmitting || selectedFiles.length >= 5 ? "opacity-50 cursor-not-allowed" : ""}`}
+                             className={`relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500 ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}`}
                            >
                              <span>Upload files</span>
                              <input
                                id="file-upload"
-                               name="file-upload"
+                               name="file-upload" // Should match label's htmlFor
                                type="file"
                                className="sr-only"
                                multiple
                                onChange={handleFileChange}
-                               disabled={isSubmitting || selectedFiles.length >= 5}
-                               accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.gif,.txt"
+                               disabled={isSubmitting || selectedFiles.length >= 5} // Disable if submitting or max files reached
+                               accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.gif,.txt" // Example accept types
                              />
                            </label>
                            <p className="pl-1">or drag and drop</p>
@@ -769,6 +818,7 @@ const CreateReport = () => {
                          </p>
                        </div>
                      </div>
+                     {/* List of selected files */}
                      {selectedFiles.length > 0 && (
                        <div className="mt-4 border border-gray-200 rounded-md shadow-sm">
                          <h4 className="sr-only">Files to upload</h4>
@@ -790,7 +840,7 @@ const CreateReport = () => {
                                    onClick={() => handleRemoveFile(index)}
                                    className="p-1 rounded-full text-gray-400 hover:text-red-600 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-500"
                                    title="Remove file"
-                                   disabled={isSubmitting}
+                                   disabled={isSubmitting} // Disable remove button during submission
                                  >
                                    <XMarkIcon className="h-5 w-5" />
                                  </button>
@@ -803,19 +853,19 @@ const CreateReport = () => {
                    </div>
                 </div>
 
-                {/* Form Actions Footer (update disabled condition) */}
+                {/* Form Actions Footer */}
                  <div className="px-4 py-4 sm:px-6 flex justify-end items-center space-x-3 bg-gray-50 rounded-b-lg">
                    <button
                      type="button"
-                     onClick={() => navigate("/reports")} // Consultant reports list
+                     onClick={() => navigate("/project-manager/reports")}
                      className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-                     disabled={isSubmitting}
+                     disabled={isSubmitting} // Disable cancel during submission
                    >
                      Cancel
                    </button>
                    <button
                      type="submit"
-                     // UPDATED disabled condition
+                     // Disable if submitting, form is invalid, form hasn't changed (optional), or critical data is loading/missing
                      disabled={isSubmitting || !isValid || !dirty || isLoadingProjects || noSuitableProjects}
                      className="inline-flex justify-center items-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:bg-indigo-400 disabled:cursor-not-allowed"
                    >
@@ -839,4 +889,4 @@ const CreateReport = () => {
   );
 };
 
-export default CreateReport;
+export default CreateReportForProjectManager;
