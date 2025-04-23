@@ -9,8 +9,8 @@ import {
   ArrowPathIcon,
   XCircleIcon,
 } from "@heroicons/react/24/outline"
-import authAPI from "../../api/auth"
-import projectsAPI from "../../api/projects"
+import authAPI from "../../APi/auth"
+import projectsAPI from "../../APi/projects"
 
 const ConsultantDashboard = () => {
   const navigate = useNavigate()

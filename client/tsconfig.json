@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
     "jsx": "react-jsx"
-  }
+  },
+  "include": ["src/**/*"] // Add this line to include all files within the src directory
 }

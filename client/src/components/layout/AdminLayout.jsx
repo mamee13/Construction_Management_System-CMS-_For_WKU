@@ -1,7 +1,5 @@
-
-
 /*eslint-disable */
-import { useState, useEffect } from "react";
+import { useState, useEffect } from "react"; // Keep useEffect if needed for other things later, but not for the removed redirect
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import {
     Bars3Icon,
@@ -10,12 +8,12 @@ import {
     BuildingOfficeIcon,
     DocumentTextIcon,
     ClipboardDocumentListIcon,
-    CubeIcon,
+    CubeIcon, // Make sure CubeIcon is actually used or remove it
     ArrowRightOnRectangleIcon,
     ClipboardDocumentIcon,
     ChartBarIcon
 } from "@heroicons/react/24/outline";
-import authAPI from "../../api/auth"; // Adjust path if needed
+import authAPI from "../../APi/auth"; // Adjust path if needed
 import { useNotifications } from "../../hooks/useNotifications"; // Adjust path if needed
 import NotificationBell from "../../components/Notifications/NotificationBell"; // Adjust path if needed
 
@@ -27,13 +25,10 @@ const AdminLayout = () => {
     // Use the custom hook for notifications
     const { notifications, unreadCount, isConnected, markAsRead, clearAll } = useNotifications();
 
-    // Admin check and redirection
-    useEffect(() => {
-        if (!authAPI.isAdmin()) {
-            console.warn("Non-admin user attempted to access admin layout. Redirecting...");
-            navigate("/dashboard"); // Redirect non-admins
-        }
-    }, [navigate]);
+    // --- REMOVED ---
+    // The useEffect checking !authAPI.isAdmin() and navigating to /dashboard has been removed.
+    // ProtectedRoute in App.js handles role checking and redirection for the /admin path.
+    // --- REMOVED ---
 
     // Navigation items specific to Admin
     const navigationItems = [
@@ -43,6 +38,8 @@ const AdminLayout = () => {
         { name: "Schedules", href: "/admin/schedules", icon: ClipboardDocumentListIcon },
         { name: "Tasks", href: "/admin/tasks", icon: ClipboardDocumentIcon },
         { name: "Analytics", href: "/admin/analytics", icon: ChartBarIcon },
+        // If materials are admin-specific, add them here:
+        // { name: "Materials", href: "/admin/materials", icon: CubeIcon },
     ];
 
     const handleLogout = () => {
@@ -50,18 +47,29 @@ const AdminLayout = () => {
         navigate("/login");
     };
 
-    // Render nothing or a loading indicator while checking auth/redirecting
-    if (!authAPI.isAuthenticated() || !authAPI.isAdmin()) {
-        if (!authAPI.isAuthenticated() && !localStorage.getItem("token")) {
-            useEffect(() => { navigate("/login"); }, [navigate]);
-        }
+    // --- SIMPLIFIED AUTHENTICATION CHECK ---
+    // Render nothing if the user is not authenticated.
+    // ProtectedRoute in App.js should handle redirecting unauthenticated users to /login
+    // and non-admin users away from /admin based on the role check.
+    if (!authAPI.isAuthenticated()) {
+        console.log("AdminLayout: Not authenticated, rendering null (ProtectedRoute should redirect to login)");
         return null;
     }
 
+    // Optional: Check if currentUser data is loaded after authentication is confirmed.
+    // This can prevent rendering issues if user data fetching is asynchronous.
     if (!currentUser) {
-        return null;
+        console.log("AdminLayout: Authenticated but currentUser data not available yet, rendering null.");
+        return null; // Or return a loading spinner component
     }
 
+    // --- REMOVED INVALID CONDITIONAL HOOK ---
+    // The previous block that included `if (!authAPI.isAuthenticated() || !authAPI.isAdmin())`
+    // and potentially a useEffect inside it has been corrected/removed.
+    // Role checking (`isAdmin`) is now handled by ProtectedRoute.
+    // --- REMOVED INVALID CONDITIONAL HOOK ---
+
+    // --- Component JSX starts here ---
     return (
         <div className="min-h-screen bg-gray-100 relative">
             {/* Fixed NotificationBell at Top-Right */}
@@ -97,12 +105,13 @@ const AdminLayout = () => {
                                 <NavLink
                                     key={item.name}
                                     to={item.href}
+                                    end // Use end prop for better matching, especially for index routes like /admin/users
                                     className={({ isActive }) =>
                                         `group flex items-center px-2 py-2 text-base font-medium rounded-md ${
                                             isActive ? "bg-indigo-100 text-indigo-900" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                                         }`
                                     }
-                                    onClick={() => setSidebarOpen(false)}
+                                    onClick={() => setSidebarOpen(false)} // Close sidebar on mobile link click
                                 >
                                     <item.icon className="mr-4 flex-shrink-0 h-6 w-6 text-indigo-600" aria-hidden="true" />
                                     {item.name}
@@ -110,20 +119,22 @@ const AdminLayout = () => {
                             ))}
                         </nav>
                     </div>
-                    {/* Mobile Bottom section */}
+                    {/* Mobile Bottom section (User Info/Logout) */}
                     <div className="flex-shrink-0 flex items-center justify-between border-t border-gray-200 p-4">
                         <button className="flex-shrink-0 group block" onClick={handleLogout}>
                             <div className="flex items-center">
                                 <div className="flex-shrink-0 h-10 w-10 bg-indigo-100 rounded-full flex items-center justify-center">
+                                    {/* Initials */}
                                     <span className="text-indigo-800 font-medium">
-                                        {currentUser?.firstName?.[0]}
-                                        {currentUser?.lastName?.[0]}
+                                        {currentUser?.firstName?.[0]?.toUpperCase()}
+                                        {currentUser?.lastName?.[0]?.toUpperCase()}
                                     </span>
                                 </div>
                                 <div className="ml-3 text-left">
                                     <p className="text-sm font-medium text-gray-700 group-hover:text-gray-900">
                                         {currentUser?.firstName} {currentUser?.lastName}
                                     </p>
+                                    {/* Logout Button */}
                                     <div className="flex items-center text-xs font-medium text-red-500 group-hover:text-red-700">
                                         <ArrowRightOnRectangleIcon className="mr-1 h-4 w-4" />
                                         Logout
@@ -133,7 +144,7 @@ const AdminLayout = () => {
                         </button>
                     </div>
                 </div>
-                <div className="w-14 flex-shrink-0" aria-hidden="true"></div>
+                <div className="w-14 flex-shrink-0" aria-hidden="true"></div> {/* Dummy element for sidebar spacing */}
             </div>
 
             {/* Static sidebar for desktop */}
@@ -148,6 +159,7 @@ const AdminLayout = () => {
                                 <NavLink
                                     key={item.name}
                                     to={item.href}
+                                    end // Use end prop for desktop links too
                                     className={({ isActive }) =>
                                         `group flex items-center px-2 py-2 text-sm font-medium rounded-md ${
                                             isActive ? "bg-indigo-100 text-indigo-900" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
@@ -160,32 +172,43 @@ const AdminLayout = () => {
                             ))}
                         </nav>
                     </div>
-                    {/* Desktop bottom section */}
+                    {/* Desktop bottom section (User Info/Logout) */}
                     <div className="flex-shrink-0 flex items-center justify-between border-t border-gray-200 p-4">
-                        <button className="flex-shrink-0 group block mr-4 text-left" onClick={handleLogout}>
-                            <div className="flex items-center">
+                        {/* User Info */}
+                        <div className="flex-shrink-0 group block mr-4 text-left">
+                             <div className="flex items-center">
                                 <div className="flex-shrink-0 h-10 w-10 bg-indigo-100 rounded-full flex items-center justify-center">
+                                    {/* Initials */}
                                     <span className="text-indigo-800 font-medium">
-                                        {currentUser?.firstName?.[0]}
-                                        {currentUser?.lastName?.[0]}
+                                        {currentUser?.firstName?.[0]?.toUpperCase()}
+                                        {currentUser?.lastName?.[0]?.toUpperCase()}
                                     </span>
                                 </div>
                                 <div className="ml-3">
-                                    <p className="text-sm font-medium text-gray-700 group-hover:text-gray-900">
+                                    <p className="text-sm font-medium text-gray-700">
                                         {currentUser?.firstName} {currentUser?.lastName}
                                     </p>
-                                    <p className="text-xs text-gray-500">Admin</p>
+                                    <p className="text-xs text-gray-500">Admin</p> {/* Hardcoded Role Display */}
                                 </div>
                             </div>
+                        </div>
+                        {/* Desktop Logout Button */}
+                        <button
+                            onClick={handleLogout}
+                            className="p-2 rounded-md text-gray-500 hover:text-red-600 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                        >
+                             <span className="sr-only">Logout</span>
+                             <ArrowRightOnRectangleIcon className="h-6 w-6" aria-hidden="true" />
                         </button>
                     </div>
                 </div>
             </div>
 
-            {/* Main content */}
+            {/* Main content area */}
             <div className="md:pl-64 flex flex-col flex-1">
                 {/* Mobile Header Bar */}
                 <div className="sticky top-0 z-10 md:hidden px-1 pt-1 sm:px-3 sm:pt-3 bg-white shadow flex items-center justify-between">
+                    {/* Mobile Menu Button */}
                     <button
                         type="button"
                         className="-ml-0.5 -mt-0.5 h-12 w-12 inline-flex items-center justify-center rounded-md text-gray-500 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500"
@@ -194,16 +217,14 @@ const AdminLayout = () => {
                         <span className="sr-only">Open sidebar</span>
                         <Bars3Icon className="h-6 w-6" aria-hidden="true" />
                     </button>
-                    {/* Optional: Mobile Header Title or Breadcrumbs */}
-                    {/* <h2 className="text-lg font-semibold">Admin Panel</h2> */}
+                    {/* Optional: Mobile Header Title or Breadcrumbs could go here */}
                 </div>
 
                 <main className="flex-1">
                     <div className="py-6">
                         <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-                            {/* Replace with your content */}
+                            {/* Child Admin routes defined in App.js will render here */}
                             <Outlet />
-                            {/* /End replace */}
                         </div>
                     </div>
                 </main>

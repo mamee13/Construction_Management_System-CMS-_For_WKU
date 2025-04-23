@@ -321,7 +321,7 @@ exports.getProject = catchAsync(async (req, res, next) => {
         userIdStr === projectManagerIdStr;
 
     // Allow access if user is admin OR assigned to the project
-    if (requestingUser.role === 'admin' || isAssigned) {
+    if (requestingUser.role === 'admin' || requestingUser.role === 'committee' || isAssigned) {
         // User is authorized, send the project data
         console.log(`[getProject ${projectId}] Authorized access for user ${userIdStr} (Role: ${requestingUser.role}, Assigned: ${isAssigned})`);
         console.log(`[getProject ${projectId}] Populated data being sent:`, JSON.stringify(project, null, 2)); // Keep your log

@@ -280,7 +280,7 @@ import {
     ClipboardDocumentIcon,
     ChatBubbleLeftRightIcon, // <-- Import Chat Icon
 } from "@heroicons/react/24/outline";
-import authAPI from "../../api/auth"; // Adjust path if needed
+import authAPI from "../../APi/auth"; // Adjust path if needed
 import { useNotifications } from "../../hooks/useNotifications"; // Adjust path if needed
 import NotificationBell from "../../components/Notifications/NotificationBell"; // Adjust path if needed
 
@@ -306,13 +306,13 @@ const MainLayout = () => {
         const userRole = currentUser?.role;
         // --- CHANGE: Add Chat to common items ---
         const commonItems = [
-            { name: "Dashboard", href: "/dashboard", icon: HomeIcon },
             { name: "Chat", href: "/chat", icon: ChatBubbleLeftRightIcon }, // <-- Added Chat Link
             { name: "Profile", href: "/profile", icon: UserIcon },
         ];
-
+        
         const roleItems = {
             admin: [
+                { name: "Dashboard", href: "/dashboard", icon: HomeIcon },
                 { name: "Admin Console", href: "/admin", icon: ChartBarIcon }
             ],
             consultant: [
@@ -329,12 +329,18 @@ const MainLayout = () => {
             project_manager: [
                 { name: "Projects", href: "/projectmanager-projects", icon: BuildingOfficeIcon },
                 { name: "Reports", href: "/projectmanager-reports", icon: DocumentTextIcon },
-               
+
             ],
+            // In the getNavigationItems function, update the committee items:
             committee: [
-                { name: "Projects", href: "/projects", icon: BuildingOfficeIcon },
-                { name: "Reports", href: "/reports", icon: DocumentTextIcon },
+                { name: "Dashboard", href: "/committee-dashboard", icon: HomeIcon },
+                { name: "Projects", href: "/committee-projects", icon: BuildingOfficeIcon },
+                { name: "Reports", href: "/committee-reports", icon: DocumentTextIcon },
             ],
+            // committee: [
+            //     { name: "Projects", href: "/projects", icon: BuildingOfficeIcon },
+            //     { name: "Reports", href: "/reports", icon: DocumentTextIcon },
+            // ],
         };
 
         return [...commonItems, ...(userRole ? roleItems[userRole] || [] : [])];
@@ -392,8 +398,7 @@ const MainLayout = () => {
                                     // Adjust end prop logic if needed, e.g., for /chat sub-routes later
                                     end={item.href === '/dashboard' || item.href === '/chat'}
                                     className={({ isActive }) =>
-                                        `group flex items-center px-2 py-2 text-base font-medium rounded-md ${
-                                            isActive ? "bg-indigo-100 text-indigo-900" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                                        `group flex items-center px-2 py-2 text-base font-medium rounded-md ${isActive ? "bg-indigo-100 text-indigo-900" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                                         }`
                                     }
                                     onClick={() => setSidebarOpen(false)} // Close sidebar on link click
@@ -445,8 +450,7 @@ const MainLayout = () => {
                                     // Adjust end prop logic if needed
                                     end={item.href === '/dashboard' || item.href === '/chat'}
                                     className={({ isActive }) =>
-                                        `group flex items-center px-2 py-2 text-sm font-medium rounded-md ${
-                                            isActive ? "bg-indigo-100 text-indigo-900" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                                        `group flex items-center px-2 py-2 text-sm font-medium rounded-md ${isActive ? "bg-indigo-100 text-indigo-900" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                                         }`
                                     }
                                 >
@@ -476,7 +480,7 @@ const MainLayout = () => {
                                 </div>
                             </div>
                         </button>
-                         {/* Optional: Could put notification bell here too for desktop if preferred over top-right fixed */}
+                        {/* Optional: Could put notification bell here too for desktop if preferred over top-right fixed */}
                     </div>
                 </div>
             </div>
@@ -495,7 +499,7 @@ const MainLayout = () => {
                         <Bars3Icon className="h-6 w-6" aria-hidden="true" />
                     </button>
                     {/* Title could go here if needed */}
-                     {/* Mobile Notification Bell could also go here if preferred */}
+                    {/* Mobile Notification Bell could also go here if preferred */}
                 </div>
 
                 <main className="flex-1">
