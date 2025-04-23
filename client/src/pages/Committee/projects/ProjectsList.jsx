@@ -80,7 +80,15 @@ const ProjectsList = () => {
   return (
     <div className="p-6">
       <Card>
-        <Title level={2}>Projects List</Title>
+        <div className="flex justify-between items-center mb-6">
+          <Title level={2}>Projects List</Title>
+          <Button 
+            type="primary"
+            onClick={() => navigate('/committee-dashboard')}
+          >
+            Back to Dashboard
+          </Button>
+        </div>
         <Table
           columns={columns}
           dataSource={projects}

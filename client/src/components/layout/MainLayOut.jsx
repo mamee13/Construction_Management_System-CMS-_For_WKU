@@ -276,9 +276,10 @@ import {
     CubeIcon,
     ChartBarIcon,
     UserIcon,
+    UsersIcon,  // Add this import
     ArrowRightOnRectangleIcon,
     ClipboardDocumentIcon,
-    ChatBubbleLeftRightIcon, // <-- Import Chat Icon
+    ChatBubbleLeftRightIcon,
 } from "@heroicons/react/24/outline";
 import authAPI from "../../APi/auth"; // Adjust path if needed
 import { useNotifications } from "../../hooks/useNotifications"; // Adjust path if needed
@@ -306,13 +307,13 @@ const MainLayout = () => {
         const userRole = currentUser?.role;
         // --- CHANGE: Add Chat to common items ---
         const commonItems = [
+            { name: "Dashboard", href: "/dashboard", icon: HomeIcon },
             { name: "Chat", href: "/chat", icon: ChatBubbleLeftRightIcon }, // <-- Added Chat Link
             { name: "Profile", href: "/profile", icon: UserIcon },
         ];
         
         const roleItems = {
             admin: [
-                { name: "Dashboard", href: "/dashboard", icon: HomeIcon },
                 { name: "Admin Console", href: "/admin", icon: ChartBarIcon }
             ],
             consultant: [
@@ -323,19 +324,17 @@ const MainLayout = () => {
             ],
             contractor: [
                 { name: "Projects", href: "/contractor-projects", icon: BuildingOfficeIcon },
-                { name: "Materials", href: "/materials", icon: CubeIcon },
                 { name: "Reports", href: "/contractor-reports", icon: DocumentTextIcon },
             ],
             project_manager: [
                 { name: "Projects", href: "/projectmanager-projects", icon: BuildingOfficeIcon },
                 { name: "Reports", href: "/projectmanager-reports", icon: DocumentTextIcon },
-
             ],
-            // In the getNavigationItems function, update the committee items:
             committee: [
                 { name: "Dashboard", href: "/committee-dashboard", icon: HomeIcon },
                 { name: "Projects", href: "/committee-projects", icon: BuildingOfficeIcon },
                 { name: "Reports", href: "/committee-reports", icon: DocumentTextIcon },
+                { name: "Team Members", href: "/committee-team", icon: UsersIcon },
             ],
             // committee: [
             //     { name: "Projects", href: "/projects", icon: BuildingOfficeIcon },

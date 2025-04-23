@@ -16,8 +16,13 @@ const ReportsList = () => {
 
   const fetchReports = async () => {
     try {
-      const response = await axios.get('/api/committee/reports');
-      setReports(response.data);
+      const token = localStorage.getItem('wku_cms_token');
+      const response = await axios.get('/api/reports', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      setReports(response.data.data || []); // Access the data property from response
       setLoading(false);
     } catch (error) {
       console.error('Error fetching reports:', error);
@@ -25,6 +30,7 @@ const ReportsList = () => {
     }
   };
 
+  // Update the columns to match the actual data structure
   const columns = [
     {
       title: 'Report Title',
@@ -33,16 +39,21 @@ const ReportsList = () => {
     },
     {
       title: 'Project',
-      dataIndex: ['project', 'name'],
+      dataIndex: ['project', 'projectName'], // Updated to match API response
       key: 'project',
+    },
+    {
+      title: 'Type',
+      dataIndex: 'type',
+      key: 'type',
     },
     {
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
       render: (status) => (
-        <Tag color={status === 'approved' ? 'green' : 'orange'}>
-          {status.toUpperCase()}
+        <Tag color={status === 'approved' ? 'green' : status === 'pending' ? 'orange' : 'red'}>
+          {status?.toUpperCase()}
         </Tag>
       ),
     },
@@ -50,6 +61,7 @@ const ReportsList = () => {
       title: 'Created At',
       dataIndex: 'createdAt',
       key: 'createdAt',
+      render: (date) => new Date(date).toLocaleDateString(),
     },
     {
       title: 'Actions',
@@ -70,13 +82,13 @@ const ReportsList = () => {
   return (
     <div className="p-6">
       <Card>
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex justify-between items-center mb-6">
           <Title level={2}>Reports List</Title>
-          <Button
+          <Button 
             type="primary"
-            onClick={() => navigate('/committee-reports/create')}
+            onClick={() => navigate('/committee-dashboard')}
           >
-            Create New Report
+            Back to Dashboard
           </Button>
         </div>
         <Table

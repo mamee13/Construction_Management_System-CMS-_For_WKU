@@ -26,8 +26,8 @@ import {
 // import { toast } from "react-toastify";
 
 // Assuming APIs are in the correct relative path for this component
-import projectsAPI from '../../../api/projects'; // Adjusted path
-import authAPI from '../../../api/auth'; // Adjusted path
+import projectsAPI from '../../../APi/projects'; // Adjusted path
+import authAPI from '../../../APi/auth'; // Adjusted path
 
 // --- Helper Functions (Copied from ProjectDetail for consistency) ---
 const formatDate = (dateString) => {

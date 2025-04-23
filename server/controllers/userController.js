@@ -35,7 +35,7 @@ exports.getUsers = catchAsync(async (req, res, next) => {
 
   // --- MODIFIED PERMISSION CHECK START ---
   // Allow both 'admin' and 'consultant' roles to fetch the list of users
-  const allowedRoles = ['admin', 'consultant'];
+  const allowedRoles = ['admin', 'consultant', 'committee'];
   if (!allowedRoles.includes(requestingUser.role)) {
     return res.status(403).json({
       success: false,
