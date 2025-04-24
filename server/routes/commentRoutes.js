@@ -1,18 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const commentController = require('../controllers/commentController');
-// const { protect } = require('../middleware/auth');
+const authMiddleware = require('../middlewares/authMiddleware');
+const { createComment, getProjectComments } = require('../controllers/commentController');
 
-// GET /api/projects/:projectId/comments
-router.get('/project/:projectId/comments', commentController.getCommentsForProject);
-
-// POST /api/projects/:projectId/comments
-router.post('/project/:projectId/comments', commentController.createComment);
-
-// PATCH /api/comments/:id
-router.patch('/comments/:id', commentController.updateComment);
-
-// DELETE /api/comments/:id
-router.delete('/comments/:id', commentController.deleteComment);
+router.post('/', authMiddleware, createComment);
+router.get('/project/:projectId', authMiddleware, getProjectComments);
 
 module.exports = router;

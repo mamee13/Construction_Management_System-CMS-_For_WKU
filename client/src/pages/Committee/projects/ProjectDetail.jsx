@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { Form, Input, List, Avatar, Typography, Button } from 'antd';
 import {
   ArrowPathIcon,
   CalendarIcon,
@@ -16,28 +17,21 @@ import {
   ListBulletIcon,
 } from "@heroicons/react/24/outline";
 
-            // Add this function at the top of your component
-            const formatDuration = (days) => {
-              if (days >= 365) {
-                const years = Math.floor(days / 365);
-                const remainingDays = days % 365;
-                return remainingDays > 0 ? `${years} year${years > 1 ? 's' : ''} and ${remainingDays} day${remainingDays > 1 ? 's' : ''}` : `${years} year${years > 1 ? 's' : ''}`;
-              } else if (days >= 30) {
-                const months = Math.floor(days / 30);
-                const remainingDays = days % 30;
-                return remainingDays > 0 ? `${months} month${months > 1 ? 's' : ''} and ${remainingDays} day${remainingDays > 1 ? 's' : ''}` : `${months} month${months > 1 ? 's' : ''}`;
-              }
-              return `${days} day${days > 1 ? 's' : ''}`;
-            };
-            
-            // Update the project details section to match the API response
+// Add these imports at the top with other imports
+const { TextArea } = Input;
+const { Title } = Typography;
 
 const CommitteeProjectDetail = () => {
+  // Add these states with other state declarations
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [comments, setComments] = useState([]);
+  const [commentForm] = Form.useForm();
+  const [submitting, setSubmitting] = useState(false);
   const { id } = useParams();
   const navigate = useNavigate();
 
+  // Define fetchProjectDetails first
   const fetchProjectDetails = React.useCallback(async () => {
     try {
       const token = localStorage.getItem('wku_cms_token');
@@ -54,9 +48,48 @@ const CommitteeProjectDetail = () => {
     }
   }, [id]);
 
+  // Define fetchComments next
+  const fetchComments = React.useCallback(async () => {
+    try {
+      const token = localStorage.getItem('wku_cms_token');
+      const response = await axios.get(`/api/comments/project/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      setComments(response.data.data);
+    } catch (error) {
+      console.error('Error fetching comments:', error);
+    }
+  }, [id]);
+
+  // Define handleCommentSubmit
+  const handleCommentSubmit = async (values) => {
+    try {
+      setSubmitting(true);
+      const token = localStorage.getItem('wku_cms_token');
+      const response = await axios.post('/api/comments', {
+        projectId: id,
+        content: values.content
+      }, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      setComments([response.data.data, ...comments]);
+      commentForm.resetFields();
+    } catch (error) {
+      console.error('Error submitting comment:', error);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Place useEffects after all function definitions
   useEffect(() => {
     fetchProjectDetails();
-  }, [fetchProjectDetails]);
+    fetchComments();
+  }, [fetchProjectDetails, fetchComments]);
 
   if (loading) {
     return (
@@ -107,33 +140,18 @@ const CommitteeProjectDetail = () => {
             <h3 className="text-lg leading-6 font-medium text-gray-900">Project Details</h3>
           </div>
           <div className="px-4 py-5 sm:p-6">
-
             <dl className="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
               <div>
                 <dt className="text-sm font-medium text-gray-500 flex items-center">
                   <MapPinIcon className="h-4 w-4 mr-1.5 text-gray-400"/>Location
                 </dt>
-                <dd className="mt-1 text-sm text-gray-900">{project.projectLocation}</dd>
+                <dd className="mt-1 text-sm text-gray-900">{project.projectLocation || 'N/A'}</dd>
               </div>
               <div>
                 <dt className="text-sm font-medium text-gray-500 flex items-center">
                   <CurrencyDollarIcon className="h-4 w-4 mr-1.5 text-gray-400"/>Budget
                 </dt>
-                <dd className="mt-1 text-sm text-gray-900">${project.projectBudget?.toLocaleString()}</dd>
-              </div>
-              <div>
-                <dt className="text-sm font-medium text-gray-500 flex items-center">
-                  <ClockIcon className="h-4 w-4 mr-1.5 text-gray-400"/>Duration
-                </dt>
-                <dd className="mt-1 text-sm text-gray-900">{formatDuration(project.duration)}</dd>
-              </div>
-              <div>
-                <dt className="text-sm font-medium text-gray-500 flex items-center">
-                  <CalendarIcon className="h-4 w-4 mr-1.5 text-gray-400"/>Created On
-                </dt>
-                <dd className="mt-1 text-sm text-gray-900">
-                  {new Date(project.createdAt).toLocaleDateString()}
-                </dd>
+                <dd className="mt-1 text-sm text-gray-900">${project.projectBudget?.toLocaleString() || 'N/A'}</dd>
               </div>
               <div>
                 <dt className="text-sm font-medium text-gray-500 flex items-center">
@@ -178,43 +196,6 @@ const CommitteeProjectDetail = () => {
                 )}
               </dd>
             </div>
-
-            <div>
-              <dt className="text-sm font-medium text-gray-500 flex items-center">
-                <UserIcon className="h-4 w-4 mr-1.5 text-gray-400"/>Contractor
-              </dt>
-              <dd className="mt-1 text-sm text-gray-900">
-                <p className="font-semibold">
-                  {project.contractor?.firstName} {project.contractor?.lastName}
-                </p>
-                <p className="text-gray-600">{project.contractor?.email}</p>
-                {project.contractor?.phone && (
-                  <p className="text-gray-600 flex items-center">
-                    <PhoneIcon className="h-3 w-3 mr-1 text-gray-400"/>
-                    {project.contractor.phone}
-                  </p>
-                )}
-              </dd>
-            </div>
-
-            <div>
-              <dt className="text-sm font-medium text-gray-500 flex items-center">
-                <UserIcon className="h-4 w-4 mr-1.5 text-gray-400"/>Consultant
-              </dt>
-              <dd className="mt-1 text-sm text-gray-900">
-                <p className="font-semibold">
-                  {project.consultant?.firstName} {project.consultant?.lastName}
-                </p>
-                <p className="text-gray-600">{project.consultant?.email}</p>
-                {project.consultant?.phone && (
-                  <p className="text-gray-600 flex items-center">
-                    <PhoneIcon className="h-3 w-3 mr-1 text-gray-400"/>
-                    {project.consultant.phone}
-                  </p>
-                )}
-              </dd>
-            </div>
-            {/* Removed the Created By card */}
           </div>
         </div>
 
@@ -246,6 +227,64 @@ const CommitteeProjectDetail = () => {
                 <p className="mt-2 text-sm text-gray-500 italic">No documents available</p>
               </div>
             )}
+          </div>
+        </div>
+
+        {/* Comments Section */}
+        <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+          <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
+            <h3 className="text-lg leading-6 font-medium text-gray-900">Project Comments</h3>
+          </div>
+          <div className="px-4 py-5 sm:p-6">
+            <Form
+              form={commentForm}
+              onFinish={handleCommentSubmit}
+              className="mb-6"
+            >
+              <Form.Item
+                name="content"
+                rules={[{ required: true, message: 'Please write your comment' }]}
+              >
+                <TextArea rows={4} placeholder="Write a comment..." />
+              </Form.Item>
+              <Form.Item>
+                <Button 
+                  type="primary" 
+                  htmlType="submit" 
+                  loading={submitting}
+                  className="bg-indigo-600 hover:bg-indigo-700"
+                >
+                  Add Comment
+                </Button>
+              </Form.Item>
+            </Form>
+
+            <List
+              className="comment-list"
+              itemLayout="horizontal"
+              dataSource={comments}
+              renderItem={comment => (
+                <List.Item>
+                  <List.Item.Meta
+                    avatar={
+                      <Avatar>
+                        {comment.userId.firstName[0]}
+                        {comment.userId.lastName[0]}
+                      </Avatar>
+                    }
+                    title={`${comment.userId.firstName} ${comment.userId.lastName}`}
+                    description={
+                      <>
+                        <p>{comment.content}</p>
+                        <span className="text-gray-500 text-sm">
+                          {new Date(comment.createdAt).toLocaleString()}
+                        </span>
+                      </>
+                    }
+                  />
+                </List.Item>
+              )}
+            />
           </div>
         </div>
       </div>

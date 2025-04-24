@@ -6,7 +6,6 @@ const AppError = require('./utils/AppError');
 const globalErrorHandler = require('./controllers/errorController');
 const authRoutes = require('./routes/authRoutes');
 const projectRoutes = require('./routes/projectRoutes');
-const commentRoutes = require('./routes/commentRoutes');
 const materialRoutes = require('./routes/materialRoutes');
 const taskRoutes = require('./routes/taskRoutes');
 
@@ -17,6 +16,8 @@ const notificationRouter = require('./routes/notificationRoutes'); // Import the
 // const adminAnalyticsRouter = require('./routes/adminAnalyticsRoutes'); // Adjust path
 const adminAnalyticsRouter = require('./routes/adminAnalyticsRoutes')
 const chatRouter = require('./routes/chatRoutes'); // Adjust path if needed
+const commentRoutes = require('./routes/commentRoutes');
+
 // CORS middleware - MUST come BEFORE routes
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:5173', // Your frontend URL
@@ -41,7 +42,7 @@ app.get('/', (req, res) => {
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/projects', projectRoutes);
-app.use('/api', commentRoutes);
+app.use('/api/comments', commentRoutes);
 app.use('/api/materials', materialRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/schedules', scheduleRoutes);
