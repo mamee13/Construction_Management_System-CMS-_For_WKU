@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
-import api from "../../api/index"
+import api from "../../APi/index"
 
 const LoginDebug = () => {
   const [email, setEmail] = useState("")

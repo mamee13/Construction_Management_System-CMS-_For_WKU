@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
+import axios from 'axios';
 import {
   ArrowPathIcon,
   BuildingOfficeIcon,
@@ -13,16 +14,42 @@ import {
   ClipboardDocumentListIcon,
   CubeIcon,
   ChevronLeftIcon,
+  ChatBubbleLeftEllipsisIcon, // Added this import
+  ClockIcon,                  // Also adding ClockIcon since it's used in comments section
+  ExclamationTriangleIcon,    // Also adding this for error states
 } from "@heroicons/react/24/outline"
 import { toast } from "react-toastify"
-import projectsAPI from "../../api/projects"
-import authAPI from "../../api/auth"
+import projectsAPI from "../../APi/projects"
+import authAPI from "../../APi/auth"
+
+const formatDateTime = (dateString) => {
+  if (!dateString) return "N/A";
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return "Invalid Date";
+    return date.toLocaleString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit"
+    });
+  } catch (e) {
+    console.error("Error formatting date:", e);
+    return "Invalid Date";
+  }
+};
+
 
 const ProjectManagerProjectDetail = () => {
   const { id } = useParams()
   const navigate = useNavigate()
   const currentUser = authAPI.getCurrentUser()
   const [activeTab, setActiveTab] = useState("overview")
+  const [comments, setComments] = useState([]);
+  const [isLoadingComments, setIsLoadingComments] = useState(true);
+  const [commentError, setCommentError] = useState(null);
+
 
   // Fetch project details
   const {
@@ -57,6 +84,31 @@ const ProjectManagerProjectDetail = () => {
       }
     }
   }, [projectData, currentUser, navigate])
+  useEffect(() => {
+    const fetchComments = async () => {
+      if (!id) return;
+      
+      try {
+        setIsLoadingComments(true);
+        const token = localStorage.getItem('wku_cms_token');
+        const response = await axios.get(`/api/comments/project/${id}`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        setComments(response.data.data);
+        setCommentError(null);
+      } catch (error) {
+        console.error('Error fetching comments:', error);
+        setCommentError(error.message || 'Failed to load comments');
+      } finally {
+        setIsLoadingComments(false);
+      }
+    };
+
+    fetchComments();
+  }, [id]);
+
 
   const project = projectData?.data
 
@@ -397,34 +449,51 @@ const ProjectManagerProjectDetail = () => {
         )
       case "comments":
         return (
-          <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Project Comments</h3>
-            {project.comments && project.comments.length > 0 ? (
-              <div className="space-y-4">
-                {project.comments.map((comment) => (
-                  <div key={comment._id} className="bg-gray-50 p-4 rounded-lg">
-                    <div className="flex justify-between items-center mb-2">
-                      <div className="flex items-center">
-                        <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center mr-2">
-                          <UserIcon className="h-4 w-4 text-indigo-600" />
-                        </div>
-                        <span className="font-medium text-gray-900">
-                          {comment.user?.firstName} {comment.user?.lastName}
-                        </span>
-                      </div>
-                      <span className="text-xs text-gray-500">
-                        {new Date(comment.createdAt).toLocaleDateString()} at{" "}
-                        {new Date(comment.createdAt).toLocaleTimeString()}
+          <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+          <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
+            <h3 className="text-lg leading-6 font-medium text-gray-900 flex items-center">
+              <ChatBubbleLeftEllipsisIcon className="h-5 w-5 mr-2 text-gray-500"/> Comments
+            </h3>
+          </div>
+          <div className="px-4 py-5 sm:p-6">
+            {isLoadingComments ? (
+              <div className="text-center py-4">
+                <ArrowPathIcon className="h-6 w-6 animate-spin mx-auto text-gray-400" />
+                <p className="mt-2 text-sm text-gray-500">Loading comments...</p>
+              </div>
+            ) : commentError ? (
+              <div className="text-center py-4 text-red-600">
+                <ExclamationTriangleIcon className="h-6 w-6 mx-auto text-red-500" />
+                <p className="mt-2 text-sm">{commentError}</p>
+              </div>
+            ) : comments.length > 0 ? (
+              <ul className="space-y-4">
+                {comments.map((comment) => (
+                  <li key={comment._id} className="border p-4 rounded-md bg-gray-50 shadow-sm">
+                    <p className="text-sm text-gray-800 mb-2" style={{ whiteSpace: 'pre-wrap' }}>
+                      {comment.content}
+                    </p>
+                    <div className="text-xs text-gray-500 flex items-center justify-between flex-wrap gap-2">
+                      <span className="flex items-center">
+                        <UserIcon className="h-3 w-3 mr-1 text-gray-400"/>
+                        {comment.userId ? `${comment.userId.firstName} ${comment.userId.lastName}` : 'Unknown User'}
+                      </span>
+                      <span className="flex items-center">
+                        <ClockIcon className="h-3 w-3 mr-1 text-gray-400"/>
+                        {formatDateTime(comment.createdAt)}
                       </span>
                     </div>
-                    <p className="text-gray-700">{comment.content}</p>
-                  </div>
+                  </li>
                 ))}
-              </div>
+              </ul>
             ) : (
-              <p className="text-gray-500 italic">No comments have been added to this project yet.</p>
+              <div className="text-center py-6 border-2 border-dashed border-gray-200 rounded-lg">
+                <ChatBubbleLeftEllipsisIcon className="mx-auto h-10 w-10 text-gray-400" />
+                <p className="mt-2 text-sm text-gray-500 italic">No comments yet.</p>
+              </div>
             )}
           </div>
+        </div>
         )
       default:
         return <div>Select a tab to view project information</div>
