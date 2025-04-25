@@ -13,7 +13,6 @@ const authAPI = {
     try {
       const response = await api.post('/auth/login', credentials);
       
-      // Store token and user data in localStorage
       if (response.data.success && response.data.token) {
         localStorage.setItem('wku_cms_token', response.data.token);
         localStorage.setItem('wku_cms_user', JSON.stringify(response.data.data.user));
@@ -32,11 +31,7 @@ const authAPI = {
   getToken: () => {
     return localStorage.getItem('wku_cms_token');
   },
-  /**
-   * Register a new user (Admin only)
-   * @param {Object} userData - New user data
-   * @returns {Promise} - Response with created user data
-   */
+
   register: async (userData) => {
     try {
       const response = await api.post('/auth/register', userData);
@@ -50,7 +45,6 @@ const authAPI = {
     }
   },
   
-  // Other methods remain the same...
   logout: () => {
     localStorage.removeItem('wku_cms_token');
     localStorage.removeItem('wku_cms_user');
@@ -73,6 +67,31 @@ const authAPI = {
   
   isAdmin: () => {
     return authAPI.hasRole('admin');
+  },
+
+  // Add the new password reset methods
+  forgotPassword: async (email) => {
+    try {
+      const response = await api.post('/auth/forgot-password', { email });
+      return response.data;
+    } catch (error) {
+      console.error('Forgot password error:', error);
+      throw error.response ? error.response.data : error;
+    }
+  },
+
+  verifyOTPAndResetPassword: async (email, otp, newPassword) => {
+    try {
+      const response = await api.post('/auth/reset-password', { 
+        email, 
+        otp, 
+        newPassword 
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Reset password error:', error);
+      throw error.response ? error.response.data : error;
+    }
   }
 };
 

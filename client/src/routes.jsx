@@ -11,6 +11,7 @@ import AdminLayout from "./components/layout/AdminLayout"
 
 // Auth pages
 import LoginForm from "./components/Auth/LoginForm"
+import ForgotPassword from "./components/Auth/ForgotPassword" // Add this line
 import LoginDebug from "./pages/auth/LoginDebug"
 
 // User pages
@@ -140,10 +141,15 @@ function App() {
     <Router>
       <ToastContainer position="top-right" autoClose={5000} />
       <Routes>
-        {/* Auth routes */}
+        {/* Auth routes - these should be outside of any layout */}
         <Route path="/login" element={<LoginForm />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} /> {/* Add this line */}
         <Route path="/login-debug" element={<LoginDebug />} />
 
+        {/* Root redirect */}
+        <Route path="/" element={<RootRedirector />} />
+
+        {/* Rest of your routes... */}
         {/* User routes with MainLayout */}
         <Route
           path="/"

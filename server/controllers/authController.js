@@ -2,6 +2,9 @@ const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const catchAsync = require('../utils/CatchAsync');
+const OTP = require('../models/OTP');
+const { sendOTPEmail } = require('../utils/emailService');
+const rateLimit = require('express-rate-limit');
 
 console.log('bcrypt version:', bcrypt.VERSION || bcrypt.version || 'bcryptjs');
 console.log('bcrypt hash function:', bcrypt.hash.toString());
@@ -184,3 +187,101 @@ exports.updateMyPassword = catchAsync(async (req, res, next) => {
       // token: token // Optionally send a new token
   });
 });
+
+// Rate limiter for forgot password requests
+const forgotPasswordLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // limit each IP to 5 requests per windowMs
+  message: 'Too many password reset attempts. Please try again later.',
+});
+
+// Generate OTP
+const generateOTP = () => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};
+
+// @desc    Send OTP for password reset
+// @route   POST /api/auth/forgot-password
+// @access  Public
+exports.forgotPassword = catchAsync(async (req, res) => {
+  const { email } = req.body;
+
+  // Check if user exists
+  const user = await User.findOne({ email });
+  if (!user) {
+    return res.status(404).json({
+      success: false,
+      message: 'User not found with this email',
+    });
+  }
+
+  // Generate OTP
+  const otp = generateOTP();
+
+  // Save OTP to database
+  await OTP.create({
+    email,
+    otp: await bcrypt.hash(otp, 12),
+  });
+
+  // Send OTP via email
+  try {
+    await sendOTPEmail(email, otp);
+    res.status(200).json({
+      success: true,
+      message: 'OTP sent to your email',
+    });
+  } catch (error) {
+    await OTP.deleteOne({ email }); // Clean up OTP if email fails
+    res.status(500).json({
+      success: false,
+      message: 'Failed to send OTP email',
+    });
+  }
+});
+
+// @desc    Reset password with OTP
+// @route   POST /api/auth/reset-password
+// @access  Public
+exports.resetPassword = catchAsync(async (req, res) => {
+  const { email, otp, newPassword } = req.body;
+
+  // Validate password
+  if (!newPassword || newPassword.length < 8) {
+    return res.status(400).json({
+      success: false,
+      message: 'Password must be at least 8 characters long',
+    });
+  }
+
+  // Find the latest OTP for this email
+  const otpDoc = await OTP.findOne({ email }).sort({ createdAt: -1 });
+  if (!otpDoc) {
+    return res.status(400).json({
+      success: false,
+      message: 'OTP expired or invalid',
+    });
+  }
+
+  // Verify OTP
+  const isValidOTP = await bcrypt.compare(otp, otpDoc.otp);
+  if (!isValidOTP) {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid OTP',
+    });
+  }
+
+  // Update password
+  const user = await User.findOne({ email });
+  user.password = newPassword;
+  await user.save();
+
+  // Delete used OTP
+  await OTP.deleteOne({ _id: otpDoc._id });
+
+  res.status(200).json({
+    success: true,
+    message: 'Password reset successful',
+  });
+})
