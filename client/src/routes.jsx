@@ -80,9 +80,12 @@ import CommitteeDashboard from "./pages/Committee/CommitteeDashboard";
 import CommitteeProjectsList from "./pages/Committee/projects/ProjectsList";
 import CommitteeProjectDetail from "./pages/Committee/projects/ProjectDetail";
 import CommitteeReportsList from "./pages/Committee/reports/ReportsList";
-import CommitteeReportDetail from "./pages/Committee/reports/ReportDetail";
+//import CommitteeReportDetail from "./pages/Committee/reports/ReportDetail";
 import CommitteeTeamList from "./pages/Committee/team/TeamList";
 import CommitteeTeamDetail from "./pages/Committee/team/TeamDetail";
+import CommitteeReportList from "./pages/Committee/reports/CommitteeReportList"
+//import CommitteeReportDetail from "./pages/Committee/reports/CommitteeReportDetail";
+import CommitteeReportDetail from "./pages/Committee/reports/CommitteeReportDetail"
 // Protected route component
 import ChatPage from "./pages/Chat/ChatPage"
 import ProjectsListForProjectManager from "./pages/ProjectManager/ProjectsList"
@@ -169,7 +172,7 @@ function App() {
           <Route path="committee-dashboard" element={<ProtectedRoute requiredRole="committee"><CommitteeDashboard /></ProtectedRoute>} />
           <Route path="committee-projects" element={<ProtectedRoute requiredRole="committee"><CommitteeProjectsList /></ProtectedRoute>} />
           <Route path="committee-projects/:id" element={<ProtectedRoute requiredRole="committee"><CommitteeProjectDetail /></ProtectedRoute>} />
-          <Route path="committee-reports" element={<ProtectedRoute requiredRole="committee"><CommitteeReportsList /></ProtectedRoute>} />
+          <Route path="committee-reports" element={<ProtectedRoute requiredRole="committee"><CommitteeReportList /></ProtectedRoute>} />
           <Route path="committee-reports/:id" element={<ProtectedRoute requiredRole="committee"><CommitteeReportDetail /></ProtectedRoute>} />
           <Route path="committee-team" element={<ProtectedRoute requiredRole="committee"><CommitteeTeamList /></ProtectedRoute>} />
           <Route path="committee-team/:id" element={<ProtectedRoute requiredRole="committee"><CommitteeTeamDetail /></ProtectedRoute>} />

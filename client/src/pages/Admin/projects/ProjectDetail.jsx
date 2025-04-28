@@ -257,7 +257,7 @@ const ProjectDetail = () => {
             <PencilSquareIcon className="h-5 w-5 mr-2 text-gray-500" />
             Edit
           </button>
-          <button
+          {/* <button
             type="button"
             onClick={handleDelete}
             disabled={isDeleting}
@@ -276,7 +276,7 @@ const ProjectDetail = () => {
                 Delete
               </>
             )}
-          </button>
+          </button> */}
         </div>
       </div>
 

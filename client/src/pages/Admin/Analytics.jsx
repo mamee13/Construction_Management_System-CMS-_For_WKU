@@ -1738,7 +1738,7 @@ const Analytics = () => {
             <DocumentArrowDownIcon className="h-5 w-5 mr-2" />
             {isExporting ? "Exporting..." : "Export to PDF"}
           </button>
-          <button
+          {/* <button
             type="button"
             onClick={exportToPDFFallback}
             disabled={isExporting || isLoading || !!error}
@@ -1746,7 +1746,7 @@ const Analytics = () => {
           >
             <DocumentArrowDownIcon className="h-5 w-5 mr-2" />
             Simple PDF
-          </button>
+          </button> */}
         </div>
       </div>
 
