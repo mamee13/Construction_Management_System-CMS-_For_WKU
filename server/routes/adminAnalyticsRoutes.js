@@ -16,6 +16,7 @@ const router = express.Router();
 
 // Define the route for dashboard overview stats
 router.get('/',authMiddleware,roleMiddleware('admin'), adminAnalyticsController.getDashboardStats);
+router.get('/overview',authMiddleware,roleMiddleware('admin'), adminAnalyticsController.getDashboardOverviewStats);
 
 // ... other routes
 
