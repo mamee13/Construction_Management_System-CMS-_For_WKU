@@ -318,7 +318,7 @@ const MainLayout = () => {
                 { name: "Admin Console", href: "/admin", icon: ChartBarIcon }
             ],
             consultant: [
-                { name: "Dashboard", href: "/dashboard", icon: HomeIcon },
+                { name: "Dashboard", href: "/consultant-dashboard", icon: HomeIcon },
                 { name: "Projects", href: "/projects", icon: BuildingOfficeIcon },
                 { name: "Reports", href: "/reports", icon: DocumentTextIcon },
                 { name: "Schedules", href: "/schedules", icon: ClipboardDocumentListIcon },
@@ -327,15 +327,14 @@ const MainLayout = () => {
                 { name: "Profile", href: "/profile", icon: UserIcon }
             ],
             contractor: [
-                { name: "Dashboard", href: "/dashboard", icon: HomeIcon },
+                { name: "Dashboard", href: "/contractor-dashboard", icon: HomeIcon },
                 { name: "Projects", href: "/contractor-projects", icon: BuildingOfficeIcon },
                 { name: "Reports", href: "/contractor-reports", icon: DocumentTextIcon },
-                {name: "Materials", href: "/materials", icon: CubeIcon },
                 { name: "Chat", href: "/chat", icon: ChatBubbleLeftRightIcon }, // <-- Added Chat Link
                 { name: "Profile", href: "/profile", icon: UserIcon },
             ],
             project_manager: [
-                { name: "Dashboard", href: "/dashboard", icon: HomeIcon },
+                { name: "Dashboard", href: "/projectmanager-dashboard", icon: HomeIcon },
                 { name: "Projects", href: "/projectmanager-projects", icon: BuildingOfficeIcon },
                 { name: "Reports", href: "/projectmanager-reports", icon: DocumentTextIcon },
                 { name: "Chat", href: "/chat", icon: ChatBubbleLeftRightIcon }, // <-- Added Chat Link
