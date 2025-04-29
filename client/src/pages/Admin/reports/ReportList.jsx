@@ -321,9 +321,9 @@ const ReportList = () => {
                     <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                       <div className="flex items-center justify-end space-x-4"> {/* Increased space */}
                         <Link to={`/admin/reports/${report._id}`} className="text-indigo-600 hover:text-indigo-800 transition-colors duration-150" title="View Details"><EyeIcon className="h-5 w-5" /></Link>
-                        <button onClick={() => handleDelete(report._id)} disabled={deleteMutation.isLoading && deleteMutation.variables === report._id} className="text-red-600 hover:text-red-800 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors duration-150" title="Delete Report">
+                        {/* <button onClick={() => handleDelete(report._id)} disabled={deleteMutation.isLoading && deleteMutation.variables === report._id} className="text-red-600 hover:text-red-800 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors duration-150" title="Delete Report">
                           {deleteMutation.isLoading && deleteMutation.variables === report._id ? <ArrowPathIcon className="h-5 w-5 animate-spin" /> : <TrashIcon className="h-5 w-5" />}
-                        </button>
+                        </button> */}
                       </div>
                     </td>
                   </tr>

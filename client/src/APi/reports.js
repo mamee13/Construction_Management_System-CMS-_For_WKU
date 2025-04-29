@@ -150,6 +150,8 @@ const reportsAPI = {
     }
   },
 
+  
+
   // Helper Functions (Keep these as they are useful)
   formatDate: (dateString, options = { year: "numeric", month: "short", day: "numeric" }) => {
     // ... (implementation remains the same)
@@ -190,6 +192,9 @@ const reportsAPI = {
     }
     return colors[statusEnum] || "bg-gray-100 text-gray-800"
   },
+  
+  
+  
 
 }
 

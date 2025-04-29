@@ -281,7 +281,7 @@ const ReportDetailAdmin = () => {
           </PDFDownloadLink>
 
           {/* Edit Button */}
-          <button
+          {/* <button
             type="button"
             onClick={() => navigate(`/admin/reports/edit/${report._id}`)}
             // Check colors for oklch if issues persist with PDF generation
@@ -289,10 +289,10 @@ const ReportDetailAdmin = () => {
             title="Edit this report"
           >
             <PencilIcon className="h-5 w-5 mr-2" /> Edit
-          </button>
+          </button> */}
 
            {/* Delete Button */}
-           <button
+           {/* <button
             type="button"
             onClick={handleDeleteClick}
             disabled={deleteMutation.isLoading}
@@ -301,7 +301,7 @@ const ReportDetailAdmin = () => {
             title="Delete this report"
           >
             {deleteMutation.isLoading ? <ArrowPathIcon className="h-5 w-5 mr-2 animate-spin" /> : <TrashIcon className="h-5 w-5 mr-2" />} Delete
-           </button>
+           </button> */}
 
           {/* Back Button */}
           <button
