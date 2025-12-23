@@ -1,5 +1,4 @@
-"use client"
-
+/*eslint-disable  */
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
@@ -352,14 +351,14 @@ const ProjectsList = () => {
                         <PencilSquareIcon className="h-5 w-5" />
                         <span className="sr-only">Edit</span>
                       </button>
-                      <button
+                      {/* <button
                         onClick={() => handleDelete(project._id)}
                         className="text-red-600 hover:text-red-900"
                         title="Delete Project"
                       >
                         <TrashIcon className="h-5 w-5" />
                         <span className="sr-only">Delete</span>
-                      </button>
+                      </button> */}
                     </td>
                   </tr>
                 ))}

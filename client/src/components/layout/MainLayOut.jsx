@@ -330,7 +330,6 @@ const MainLayout = () => {
                 { name: "Dashboard", href: "/contractor-dashboard", icon: HomeIcon },
                 { name: "Projects", href: "/contractor-projects", icon: BuildingOfficeIcon },
                 { name: "Reports", href: "/contractor-reports", icon: DocumentTextIcon },
-                {name: "Materials", href: "/materials", icon: CubeIcon},
                 { name: "Chat", href: "/chat", icon: ChatBubbleLeftRightIcon }, // <-- Added Chat Link
                 { name: "Profile", href: "/profile", icon: UserIcon },
             ],

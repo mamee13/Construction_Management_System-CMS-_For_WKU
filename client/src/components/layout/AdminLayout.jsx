@@ -1,6 +1,6 @@
 /*eslint-disable */
 import { useState, useEffect } from "react"; // Keep useEffect if needed for other things later, but not for the removed redirect
-import { Outlet, NavLink, useNavigate } from "react-router-dom";
+import { Outlet, NavLink, useNavigate, Link } from "react-router-dom";
 import {
     Bars3Icon,
     XMarkIcon,
@@ -152,7 +152,9 @@ const AdminLayout = () => {
                 <div className="flex-1 flex flex-col min-h-0 border-r border-gray-200 bg-white">
                     <div className="flex-1 flex flex-col pt-5 pb-4 overflow-y-auto">
                         <div className="flex items-center flex-shrink-0 px-4">
-                            <h1 className="text-xl font-bold text-indigo-600">WKU-CMS Admin</h1>
+                            <h1 className="text-xl font-bold text-indigo-600">
+                                <Link to="/dashboard">WKU-CMS Admin </Link>
+                                </h1>
                         </div>
                         <nav className="mt-5 flex-1 px-2 bg-white space-y-1">
                             {navigationItems.map((item) => (
