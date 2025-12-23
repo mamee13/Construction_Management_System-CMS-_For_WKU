@@ -4,6 +4,7 @@ import tailwindcss from '@tailwindcss/vite'
 import eslint from 'vite-plugin-eslint';
 import path from 'path'
 
+
 // https://vite.dev/config/
 
 export default defineConfig({
@@ -29,6 +30,6 @@ export default defineConfig({
       }
     }
   }
-})
+});
 
 
